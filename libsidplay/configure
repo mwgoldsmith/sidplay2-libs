@@ -2262,14 +2262,14 @@ case "$host" in
 #define HAVE_OSS 1
 EOF
 
-    sid_audiodrv_libadd="-laudio/oss/liboss.a"
+    sid_audiodrv_libadd="./audio/oss/liboss.a"
     echo "$ac_t""oss" 1>&6
        ;;
   *freebsd*) cat >> confdefs.h <<\EOF
 #define HAVE_OSS 1
 EOF
 
-    sid_audiodrv_libadd="-laudio/oss/liboss.a"
+    sid_audiodrv_libadd="./audio/oss/liboss.a"
     echo "$ac_t""oss" 1>&6
        ;;
   *hpux*) cat >> confdefs.h <<\EOF
@@ -2288,21 +2288,21 @@ EOF
 #define HAVE_SUNOS 1
 EOF
 
-    sid_audiodrv_libadd="-laudio/sunos/libsunos.a"
+    sid_audiodrv_libadd="./audio/sunos/libsunos.a"
     echo "$ac_t""sparc" 1>&6
        ;;
   *sunos*) cat >> confdefs.h <<\EOF
 #define HAVE_SUNOS 1
 EOF
 
-    sid_audiodrv_libadd="-laudio/sunos/libsunos.a"
+    sid_audiodrv_libadd="./audio/sunos/libsunos.a"
     echo "$ac_t""sparc" 1>&6
        ;;
   *netbsd*) cat >> confdefs.h <<\EOF
 #define HAVE_OSS 1
 EOF
 
-    sid_audiodrv_libadd="-laudio/oss/liboss.a"
+    sid_audiodrv_libadd="./audio/oss/liboss.a"
     echo "$ac_t""oss" 1>&6
        ;;
 esac
