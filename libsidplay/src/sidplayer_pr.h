@@ -44,10 +44,16 @@ private:
 
     // Player configureation options
     env_sidt      _environment;
-    env_sidt      _requiredEnv;
     playback_sidt _playback;
     udword_sidt   _samplingFreq;
     ubyte_sidt    _precision;
+
+    // C64 environment settings
+    double        _cpuFreq;
+    ubyte_sidt    _bankReg;
+
+    // Rev 2.0.2 Added - Sidplay compatibility
+    ubyte_sidt    _initBankReg;
 
     // Rev 2.0.3 Added - New Mixer
     udword_sidt   _leftVolume;
@@ -66,11 +72,10 @@ private:
     udword_sidt   _playLength;
     udword_sidt   _channels;
 
-    // C64 environment settings
-    double        _cpuFreq;
-    ubyte_sidt    _bankReg;
-    // Rev 2.0.2 Added - Sidplay compatibility
-    ubyte_sidt    _initBankReg;
+    bool          _filter;
+    bool          _extFilter;
+    model_sidt    _sidModel;
+    clock_sidt    _clockSpeed;
 
     // temp stuff -------------
     bool   isKernal;
@@ -85,7 +90,6 @@ private:
     int        initialise     (void);
     void       initBankSelect (uword_sidt addr);
     void       nextSequence   (void);
-    int        setEnvironment (env_sidt env);
 
     ubyte_sidt readMemByte_plain     (uword_sidt addr, bool useCache);
     ubyte_sidt readMemByte_playsid   (uword_sidt addr, bool useCache);
@@ -146,7 +150,7 @@ private:
     udword_sidt play         (void *buffer, udword_sidt length);
     int         loadSong     (const char * const title, const uword_sidt songNumber);
     int         loadSong     (SidTune *requiredTune);
-    void        environment  (env_sidt env);
+    int         environment  (env_sidt env);
     void        getInfo      (playerInfo_sidt *info);
     void        optimisation (ubyte_sidt level)
     {
@@ -164,6 +168,37 @@ private:
         _updateClock = false;
         return update;
     }
+
+    // Rev 2.0.4 (saw) - Added filter settings
+    void filter    (bool enabled)
+    {
+        _filter = enabled;
+        sid.enable_filter (_filter);
+    }
+    void extFilter (bool enabled)
+    {
+        _extFilter = enabled;
+        sid2.enable_external_filter (_extFilter);
+    }
+    void sidModel  (model_sidt model)
+    {
+        _sidModel = model;
+        if (_sidModel == SID_MOS6581)
+            sid.set_chip_model (MOS6581);
+        else // if (_sidModel == SID_MOS8580
+            sid.set_chip_model (MOS8580);
+    }
+    void clockSpeed (clock_sidt clock)
+    {
+        _clockSpeed      = clock;
+    }
+
+    int  loadFilter      (long ini_fd);
+    int  loadFilterType1 (long ini_fd);
+    int  loadFilterType2 (long ini_fd);
+
+    const ubyte_sidt *dumpRam (void)
+    {   return ram; }
 };
 
 #endif // _sidplayer_pr_h_

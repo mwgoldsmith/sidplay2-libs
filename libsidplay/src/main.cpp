@@ -54,6 +54,7 @@ enum
 // Global variables
 static sidplayer  player;
 static AudioBase *audioDrv = NULL;
+int quietLevel;
 
 // Function prototypes
 static void displayError  (char* arg0, int num);
@@ -66,7 +67,7 @@ int main(int argc, char *argv[])
 {
     uword_sidt    selectedSong = 0;
     playback_sidt playback     = sid_mono;
-    env_sidt      playerMode   = sidplaybs;
+    env_sidt      playerMode   = sid_envBS;
 
     bool          wavOutput     = false;
     int           sidFile       = 0;
@@ -75,7 +76,16 @@ int main(int argc, char *argv[])
     bool          verboseOutput = false;
     bool          force2SID     = false;
     int           i             = 1;
-    ubyte_sidt    optimiseLevel = 1;
+    ubyte_sidt    optimiseLevel = 0;
+    clock_sidt    clockSpeed    = SID_TUNE_CLOCK;
+
+    // (ms) Opposite of verbose output.
+    // 1 = no time display
+    quietLevel = 0;
+
+	// (ms) Incomplete...
+    // Fastforward/Rewind Patch
+    udword_sidt      starttime     = 0;
 
     // New...
     AudioConfig   audioCfg;
@@ -83,7 +93,7 @@ int main(int argc, char *argv[])
     audioCfg.frequency = SIDPLAYER_DEFAULT_SAMPLING_FREQ;;
     audioCfg.precision = SIDPLAYER_DEFAULT_PRECISION;
     audioCfg.channels  = 1; // Mono
-	
+
     if (argc < 2) // at least one argument required
     {
         displayError (argv[0], ERR_SYNTAX);
@@ -96,7 +106,7 @@ int main(int argc, char *argv[])
         int x = 0;
         if ((argv[i][0] == '-') && (argv[i][1] != '\0'))
         {
-			x++;
+            x++;
             switch (argv[i][x++])
             {
             case 'f':
@@ -178,22 +188,67 @@ int main(int argc, char *argv[])
                 switch (argv[i][x++])
                 {
                 case '\0':
-                    playerMode = playsid;
+                    playerMode = sid_envPS;
                     x--;
                 break;
 
                 case 't':
-                    playerMode = sidplaytp;
+                    playerMode = sid_envTP;
                 break;
 
                 case 'b':
-                    playerMode = sidplaybs;
+                    playerMode = sid_envBS;
                 break;
 
                 default:
                 break;
                 }
             break;
+
+            // New/No options
+            case 'n':
+                switch (argv[i][x++])
+                {
+                // External Filter Options
+                case 'e':
+                    if (argv[i][x] == '\0')
+                    {   // Disable filter
+                        player.extFilter (false);
+                        break;
+                    }
+                break;
+
+                // Filter options
+                case 'f':
+                    if (argv[i][x] == '\0')
+                    {   // Disable filter
+                        player.filter (false);
+                        break;
+                    }
+                break;
+
+                // Newer sid (8580)
+                case 's':
+                    if (argv[i][x] == '\0')
+                    {   // Select newer sid
+                        player.sidModel (SID_MOS6581);
+                        break;
+                    }
+                break;
+
+                default:
+                    x = 0;
+                break;
+                }
+            break;
+
+            case 'q':
+				{
+                    // Later introduce incremental mode.
+					//while (argv[i][x++] == 'q')
+                        ++quietLevel;
+			break;
+				}
 
             // Stereo Options
             case 's':
@@ -224,37 +279,68 @@ int main(int argc, char *argv[])
             break;
 
             case 't':
+            {
                 char *sep;
-                sep = strstr (argv[i] + x, ":");
+                bool start = false;
+                udword_sidt time;
+                if ((argv[i][x]) == 's')
+		        {
+		            x++;
+		            start = true;
+                }
 
+                sep = strstr (argv[i] + x, ":");
                 if (!sep)
                 {   // User gave seconds
-                    runtime = atoi (argv[i] + x);
-                    // Show that complete string was parsed
-                    while (argv[i][x] != '\0')
-                        x++;
-                    break;
+                    time = atoi (argv[i] + x);
                 }
-    			
-                // Read in MM:SS format
-                *sep = '\0';
-                int val;
-                val  = atoi (argv[i] + x);
-                if (val < 0 || val > 99)
-                    break;
-                runtime = (udword_sidt) val * 60;
-                val     = atoi (sep + 1);
-                if (val < 0 || val > 59)
-                    break;
-                runtime += (udword_sidt) val;
+                else
+                {   // Read in MM:SS format
+                    *sep = '\0';
+                    int val;
+                    val  = atoi (argv[i] + x);
+                    if (val < 0 || val > 99)
+                        break;
+                    time = (udword_sidt) val * 60;
+                    val  = atoi (sep + 1);
+                    if (val < 0 || val > 59)
+                        break;
+                    time += (udword_sidt) val;
+                }
+
+                if (!start)
+                    runtime   = time;
+                else
+		            starttime = time;
 
                 // Show that complete string was parsed
                 while (argv[i][x] != '\0')
                     x++;
+            }
             break;
 
             case 'v':
-                verboseOutput = true;
+                switch (argv[i][x++])
+                {
+                case '\0':
+     	            // Select Dual SIDS
+                    verboseOutput = true;
+                    x--;
+                break;
+
+                case 'n':
+                    // Select NTSC
+                    clockSpeed = SID_NTSC;
+                break;
+
+                case 'p':
+                    // Select NTSC
+                    clockSpeed = SID_PAL;
+                break;
+
+                default:
+                break;
+                }
             break;
 
             case 'w':
@@ -324,6 +410,7 @@ int main(int argc, char *argv[])
             playback = sid_mono;
     }
 
+    player.clockSpeed   (clockSpeed);
     player.configure    (playback, audioCfg.frequency, audioCfg.precision, force2SID);
     player.optimisation (optimiseLevel);
     player.environment  (playerMode);
@@ -389,8 +476,8 @@ int main(int argc, char *argv[])
     cout << "--------------------------------------------------" << endl;
     cout.setf (ios::left);
 
-    if (verboseOutput)
-        cout << setw(12) << "sidplay" << " : V2.0.0" << endl;
+//    if (verboseOutput)
+//        cout << setw(12) << "sidplay" << " : V2.0.0" << endl;
 	
     cout << setw(12) << playerInfo.name
          << " : V" << playerInfo.version << endl;
@@ -440,34 +527,38 @@ int main(int argc, char *argv[])
         cout << "Play address : $" << hex << setw(4) << setfill('0')
              << playerInfo.tuneInfo.playAddr << dec << endl;
 
-		cout << "SID Filter   : " << ((playerInfo.sidFilter == true) ? "Yes" : "No") << endl;
+		cout << "SID Filter   : " << ((playerInfo.filter == true) ? "Yes" : "No") << endl;
 		switch (playerInfo.environment)
 		{
-		case playsid:
+		case sid_envPS:
             cout << "Environment  : PlaySID (PlaySID-specific rips)" << endl;
         break;
-		case sidplaytp:
+		case sid_envTP:
             cout << "Environment  : Transparent ROM" << endl;
         break;
-        case sidplaybs:
+        case sid_envBS:
             cout << "Environment  : Bank Switching (Default)" << endl;
         break;
-        case real:
+        case sid_envR:  // When it happens
+            cout << "Environment  : Real C64 (Default)" << endl;
         break;
 		}
         cout << "--------------------------------------------------" << endl;
     }
 
     if (!wavOutput)
-        cout << "Playing, press ^C to stop...";
+        cout << "Playing, press ^C to stop..." << flush;
     else
-        cout << "Creating WAV file, please wait...";
+        cout << "Creating WAV file, please wait..." << flush;
 
     // Get all the text to the screen so music playback
     // is not disturbed.
     player.playLength (runtime);
-    cout << setw(2) << setfill('0') << ((runtime / 60) % 100)
-         << ':' << setw(2) << setfill('0') << (runtime % 60) << flush;
+    if ( !quietLevel )
+    {
+        cout << setw(2) << setfill('0') << ((runtime / 60) % 100)
+             << ':' << setw(2) << setfill('0') << (runtime % 60) << flush;
+    }
 
     // Play loop
     bool keepPlaying;
@@ -500,7 +591,7 @@ bool generateMusic (AudioConfig &cfg, void *buffer)
         return false;
 
     // Check to see if the clock requires updating
-    if (player.updateClock ())
+    if ( !quietLevel && player.updateClock ())
     {
         udword_sidt seconds = player.time();
         cout << "\b\b\b\b\b" << setw(2) << setfill('0') << ((seconds / 60) % 100)
@@ -549,7 +640,6 @@ void displaySyntax (char* arg0)
 
         << " -f<num>      set frequency in Hz (default: "
         << SIDPLAYER_DEFAULT_SAMPLING_FREQ << ")" << endl
-        << " -fc          force song speed = clock speed (PAL[-vp]/NTSC[-vn])" << endl
         << " -fd          force dual sid environment" << endl
 
 #if !defined(DISALLOW_STEREO_SOUND)
@@ -562,6 +652,7 @@ void displaySyntax (char* arg0)
 //        << " -mb          Sidplays Bankswitching Mode (default)" << endl
 //        << " -mr          Sidplay2s Real C64 Emulation Mode" << endl
 
+        << " -ne          no external SID filter emulation" << endl
         << " -nf          no SID filter emulation" << endl
         << " -ns          MOS 8580 waveforms (default: MOS 6581)" << endl
 
@@ -571,12 +662,13 @@ void displaySyntax (char* arg0)
 
         << " -p<num>      set bit precision for samples. " << "(default: "
         << SIDPLAYER_DEFAULT_PRECISION << ")" << endl
-		
+
+        << " -q           quiet (= no time display) (EXPERIMENTAL)" << endl
         << " -t<num>      set play length in [m:]s format (0 is endless)" << endl
 
         << " -v           verbose output" << endl
-        << " -vn          set VIC NTSC clock speed" << endl
-        << " -vp          set VIC PAL clock speed (default)" << endl
+        << " -vp          set VIC PAL clock speed (default: defined by song)" << endl
+        << " -vn          set VIC NTSC clock speed (default: defined by song)" << endl
 
         << " -w           create wav file (default: <datafile>.wav)" << endl
 //        << " -w<name>     explicitly defines wav output name" << endl

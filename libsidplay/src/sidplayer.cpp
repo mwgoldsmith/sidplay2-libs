@@ -29,6 +29,12 @@
 #define SIDPLAYER_VIC_FREQ_PAL         50.0
 #define SIDPLAYER_VIC_FREQ_NTSC        60.0
 
+// These texts are used to override the sidtune settings.
+static const char SIDPLAYER_PAL_VBI_TEXT[] = "50 Hz VBI (PAL FORCED)";
+static const char SIDPLAYER_PAL_CIA_TEXT[] = "CIA 1 Timer A (PAL FORCED)";
+static const char SIDPLAYER_NTSC_VBI_TEXT[] = "60 Hz VBI (NTSC FORCED)";
+static const char SIDPLAYER_NTSC_CIA_TEXT[] = "CIA 1 Timer A (NTSC FORCED)";
+
 // Set the ICs environment variable to point to
 // this sidplayer_pr
 sidplayer_pr::sidplayer_pr (void)
@@ -40,32 +46,30 @@ sidplayer_pr::sidplayer_pr (void)
     //----------------------------------------------
     // SID Initialise
     // These are optional
-    sid.enable_filter(true);
-    sid.enable_external_filter(true);
     // Emulation type selectable
-    sid.set_chip_model(MOS6581);
+    filter    (true);
+    extFilter (true);
+    // Emulation type selectable
+    sidModel  (SID_MOS6581);
 
     //----------------------------------------------
-    // SID Initialise
-    // These are optional
-    sid2.enable_filter(true);
-    sid2.enable_external_filter(true);
     // Emulation type selectable
     sid2.set_chip_model(MOS6581);
 
     // Set default settings for system
     myTune = tune  = NULL;
     ram    = (rom  = NULL);
-    _environment   = _requiredEnv = sidplaybs;
+    _environment   = sid_envBS;
     playerState    = _stopped;
-    // Added Rev 2.0.3
-    _forceDualSids = false;
     _channels      = 1;
 
     // Rev 2.0.4 (saw) - Added
     _playLength    = 0;
     configure (sid_mono, SIDPLAYER_DEFAULT_SAMPLING_FREQ,
                SIDPLAYER_DEFAULT_PRECISION, false);
+
+    // Rev 2.0.4 (saw) - Added Force Clock Speed
+    _clockSpeed    = SID_TUNE_CLOCK;
 
     // Temp @TODO@
     _leftVolume    = 255;
@@ -190,11 +194,11 @@ udword_sidt sidplayer_pr::play (void *buffer, udword_sidt length)
         while (!cpu.SPWrapped)
         {
             cpu.clock ();
-            if (_optimiseLevel < 3)
+            if (_optimiseLevel < 2)
                 break;
         }
 
-        if (_optimiseLevel == 1)
+        if (!_optimiseLevel)
         {   // Sids currently have largest cpu overhead, so have been moved
             // and are now only clocked when an output it required
             // Only clock second sid if we want to hear right channel or
@@ -364,8 +368,8 @@ int sidplayer_pr::loadSong (SidTune *requiredTune)
     // Check if environment has not initialised or
     // the user has asked to a different one.
     // This call we initalise the player
-    if ((_environment == _requiredEnv) || !ram)
-        return setEnvironment (_requiredEnv);
+    if (!ram)
+        return environment (_environment);
 
     // Initialise the player
     return initialise ();
@@ -375,9 +379,10 @@ void sidplayer_pr::getInfo (playerInfo_sidt *info)
 {
     info->name        = PACKAGE;
     info->version     = VERSION;
-    memcpy (&(info->tuneInfo), &tuneInfo, sizeof (SidTuneInfo));
+    info->filter      = _filter;
+    info->extFilter   = _extFilter;
+	info->tuneInfo    = tuneInfo;
     info->environment = _environment;
-    info->sidFilter   = true;
 }
 
 int sidplayer_pr::initialise ()
@@ -423,14 +428,13 @@ int sidplayer_pr::initialise ()
     return 0;
 }
 
-void sidplayer_pr::environment (env_sidt env)
+int sidplayer_pr::environment (env_sidt env)
 {
-    _requiredEnv = env;
-}
+    if (playerState != _stopped)
+        return -1;
 
-int sidplayer_pr::setEnvironment (env_sidt env)
-{   // Not supported yet
-    if (env == real)
+    // Not supported yet
+    if (env == sid_envR)
         return -1;
 
     // Environment already set?
@@ -458,7 +462,7 @@ int sidplayer_pr::setEnvironment (env_sidt env)
 
     // Setup the access functions to the environment
     // and the properties the memory has.
-    if (_environment == playsid)
+    if (_environment == sid_envPS)
     {   // Playsid has no roms and SID exists in ram space
         rom             = ram;
         readMemByte     = &sidplayer_pr::readMemByte_plain;
@@ -475,19 +479,19 @@ int sidplayer_pr::setEnvironment (env_sidt env)
 
         switch (_environment)
         {
-        case sidplaytp:
+        case sid_envTP:
             readMemByte     = &sidplayer_pr::readMemByte_plain;
             writeMemByte    = &sidplayer_pr::writeMemByte_sidplay;
             readMemDataByte = &sidplayer_pr::readMemByte_sidplaytp;
         break;
 
-        case sidplaybs:
+        case sid_envBS:
             readMemByte     = &sidplayer_pr::readMemByte_plain;
             writeMemByte    = &sidplayer_pr::writeMemByte_sidplay;
             readMemDataByte = &sidplayer_pr::readMemByte_sidplaybs;
         break;
 
-        case real:
+        case sid_envR:
         default: // <-- Just to please compiler
             readMemByte     = &sidplayer_pr::readMemByte_sidplaybs;
             writeMemByte    = &sidplayer_pr::writeMemByte_sidplay;
@@ -513,7 +517,7 @@ int sidplayer_pr::setEnvironment (env_sidt env)
 void sidplayer_pr::initBankSelect (uword_sidt addr)
 {
     ubyte_sidt data;
-    if (_environment == playsid)
+    if (_environment == sid_envPS)
         data = 4;  // RAM only, but special I/O mode
     else
     {
@@ -758,7 +762,7 @@ void sidplayer_pr::envReset (void)
     memset (ram, 0, 0x10000);
     memset (rom, 0, 0x10000);
     memset (rom + 0xE000, RTIn, 0x2000);
-    if (_environment != playsid)
+    if (_environment != sid_envPS)
         memset (rom + 0xA000, RTSn, 0x2000);
 
     ram[0] = 0x2F;
@@ -766,6 +770,24 @@ void sidplayer_pr::envReset (void)
     evalBankSelect(0x07);
     // fake VBI-interrupts that do $D019, BMI ...
     rom[0x0d019] = 0xff;
+
+    // Select speed description string.
+    if (_clockSpeed == SID_PAL)
+    {
+        tuneInfo.clockSpeed      = SIDTUNE_CLOCK_PAL;
+        if (tuneInfo.songSpeed  == SIDTUNE_SPEED_VBI)
+            tuneInfo.speedString = SIDPLAYER_PAL_VBI_TEXT;
+        else // if (tuneInfo.songSpeed == SIDTUNE_SPEED_CIA_1A)
+            tuneInfo.speedString = SIDPLAYER_PAL_CIA_TEXT;
+    }
+    else if (_clockSpeed == SID_NTSC)
+    {
+        tuneInfo.clockSpeed      = SIDTUNE_CLOCK_NTSC;
+        if (tuneInfo.songSpeed  == SIDTUNE_SPEED_VBI)
+            tuneInfo.speedString = SIDPLAYER_NTSC_VBI_TEXT;
+        else // if (tuneInfo.songSpeed == SIDTUNE_SPEED_CIA_1A)
+            tuneInfo.speedString = SIDPLAYER_NTSC_CIA_TEXT;
+    }
 
     // Set the CIA Timer
     if (tuneInfo.songSpeed == SIDTUNE_SPEED_VBI)
@@ -777,7 +799,7 @@ void sidplayer_pr::envReset (void)
         }
         else // SIDTUNE_CLOCK_NTSC
         {
-            _cpuFreq = SIDPLAYER_CLOCK_FREQ_PAL;
+            _cpuFreq = SIDPLAYER_CLOCK_FREQ_NTSC;
             cia.reset ((uword_sidt) (_cpuFreq / SIDPLAYER_VIC_FREQ_NTSC + 0.5));
         }
 
@@ -788,13 +810,9 @@ void sidplayer_pr::envReset (void)
     else // SIDTUNE_SPEED_CIA_1A
     {
         if (tuneInfo.clockSpeed == SIDTUNE_CLOCK_PAL)
-        {
             _cpuFreq = SIDPLAYER_CLOCK_FREQ_PAL;
-        }
         else // SIDTUNE_CLOCK_NTSC
-        {
-            _cpuFreq = SIDPLAYER_CLOCK_FREQ_PAL;
-        }
+            _cpuFreq = SIDPLAYER_CLOCK_FREQ_NTSC;
 
         cia.reset ((uword_sidt) (_cpuFreq / SIDPLAYER_VIC_FREQ_NTSC + 0.5));
         cia.write (0x0e, 0x01); // Start the timer
@@ -818,9 +836,9 @@ void sidplayer_pr::envReset (void)
     rom[0xfffe] = 0x48; // IRQ to $FF48
     rom[0xffff] = 0xff;
 	
-    // Why? - (Copied from libsidplay)
-    if (_environment == playsid)
+    if (_environment == sid_envPS)
     {
+	    // (ms) $FFFE: JMP $FF48 -> $FF48: JMP ($0314)
         rom[0xff48] = 0x6c;
         rom[0xff49] = 0x14;
         rom[0xff4a] = 0x03;
@@ -870,7 +888,7 @@ bool sidplayer_pr::envCheckBankJump (uword_sidt addr)
 {
     switch (_environment)
     {
-    case sidplaybs:
+    case sid_envBS:
         if (addr >= 0xA000)
         {
             // Get high-nibble of address.
@@ -900,7 +918,7 @@ bool sidplayer_pr::envCheckBankJump (uword_sidt addr)
         }
     break;
 
-    case sidplaytp:
+    case sid_envTP:
         if ((addr >= 0xd000) && isKernal)
             return false;
     break;
@@ -968,3 +986,14 @@ bool sidplayer::updateClock (void)
 void sidplayer::playLength (udword_sidt seconds)
 {   player->playLength (seconds); }
 
+void sidplayer::filter (bool enabled)
+{   player->filter (enabled); }
+
+void sidplayer::extFilter (bool enabled)
+{   player->extFilter (enabled); }
+
+void sidplayer::sidModel (model_sidt model)
+{   player->sidModel (model); }
+
+void sidplayer::clockSpeed (clock_sidt clock)
+{   player->clockSpeed (clock); }

@@ -29,15 +29,25 @@ const ubyte_sidt SIDPLAYER_DEFAULT_PRECISION = 16;
 const ubyte_sidt SIDPLAYER_MAX_PRECISION = 16;
 const int SIDPLAYER_MAX_OPTIMISATION = 3;
 
-typedef enum {sid_left = 0, sid_mono, sid_stereo, sid_right} playback_sidt;
-typedef enum {playsid = 0, sidplaytp, sidplaybs, real} env_sidt;
+typedef enum {sid_left  = 0, sid_mono,  sid_stereo, sid_right} playback_sidt;
+typedef enum {sid_envPS = 0, sid_envTP, sid_envBS,  sid_envR } env_sidt;
+typedef enum {SID_MOS6581, SID_MOS8580} model_sidt;
+typedef enum {SID_TUNE_CLOCK, SID_PAL, SID_NTSC} clock_sidt;
+
+/* Environment Modes
+sid_envps = Playsid
+sid_envtp = Sidplay  - Transparent Rom
+sid_envbs = Sidplay  - Bankswitching
+sid_envr  = Sidplay2 - Real C64 Environment
+*/
 
 typedef struct
 {
     char       *name;
     char       *version;
     SidTuneInfo tuneInfo;
-    bool        sidFilter;
+    bool        filter;
+    bool        extFilter;
     env_sidt    environment;
 } playerInfo_sidt;
 
@@ -67,6 +77,11 @@ public:
     udword_sidt time         (void);
     bool        updateClock  (void);
     void        playLength   (udword_sidt seconds);
+    // Added new filter, model, and clockspeed functions
+    void        filter       (bool enabled);
+    void        extFilter    (bool enabled);
+    void        sidModel     (model_sidt model);
+    void        clockSpeed   (clock_sidt clock);
 
     operator bool()  const { return (player ? true: false); }
     bool operator!() const { return (player ? false: true); }
