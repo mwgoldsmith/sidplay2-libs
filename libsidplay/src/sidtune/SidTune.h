@@ -100,9 +100,9 @@ struct SidTuneInfo
 	//
 	udword_sidt dataFileLen;	// length of single-file sidtune file
 	udword_sidt c64dataLen;		// length of raw C64 data without load address
-	char* path;					// path to sidtune files; 0, if cwd
-	char* dataFileName;			// a first file: e.g. ``*.c64''
-	char* infoFileName;			// a second file: e.g. ``*.sid''
+	char* path;					// path to sidtune files; "", if cwd
+	char* dataFileName;			// a first file: e.g. "foo.c64"; "", if none
+	char* infoFileName;			// a second file: e.g. "foo.sid"; "", if none
 	//
 };
 
