@@ -1,0 +1,134 @@
+TODO <libsidplay2>:
+
+*Remove bit fields in status register flags.  This could lead to compatibilty problems
+on other platforms
+
+*Fix _encoding to properly use PCM_UNSIGNED or PCM_SIGNED.  See sidmixer.cpp
+ and audiodrv.cpp
+
+*Voice muting (See end of file)
+
+*Convert MOS6510 Cycle_Data and Register_Accumulator registers to ubyte_sidt.
+ Upon changing these, the code will need a serious debugging setion. <Anyone?>
+
+*CIA, more timer modes (and Real timer tick?)
+
+*VIC basic support and control for scanline/refresh interrupt
+
+*New Kernel Testing <Kernel now written>
+
+*New Bank Switching implementation for remappable componenets <Started>
+
+*Implement Real C64 Mode <Need more info on NMIs, anyone got a real C64>
+
+*Find Timing bug in sidplay2 <Either CIA is wrong or output calculation>
+
+*Implement playsid and transp modes <done>
+
+*Change types to _sidt <done>
+
+*Support Stereo mus files on one cpu. <done>
+
+*Can someone optimise reSID? <Clock, output, read, write, in this order>
+
+*Change xSID to use reSIDs/hardsids 0x18 register directly <Patch only?>
+
+*Fastforward, Rewind.  Suggestions made by me to Grant about this... <Grant may do this>
+
+*Length detection <Mike or Grant?  Grants is more basic>
+
+*What access do you need for other applocations <Suggestions please>
+
+*Support for credit access, both from sid and imported components.
+
+*MOS6510:  Remove opcodes to individual files to support optimised versions.
+           I have these in asm already, but was written in BorlandC.  <Need converting>
+           This way a C functon will be used if an asm is not present.
+
+*Fix xSIDs setting of ram addr.  Change to inherit environment <Another patch?>
+
+*Possibly provide a wds sync output for stereoplayer.  These helps external players
+which support this to sync properly to the music, there are some that use
+non-real time.  Needs stereosidplayer v10.3 being ripped
+<Do not implement full wds support in libsidplay, SYNC ONLY>.  If anyone knows
+anything about the C64s stereosidplayers internals could they get contact
+sidplay2@email.com
+
+*Add 16 bit support. (possibly 24bit)
+
+*Quad sids <Probably not>
+
+*Provide a C interface to the library.
+
+* Anyone with a C64, could they confirm the operation of the sid Game Over
+  by Martin Galway. (Specific the Galway Noise beat, section of interest
+  starts at 40 secs in on the default song). Maybe someone could record
+  it from a real C64 and send it to me as an mp3 or wav file?
+
+* Need to find more songs which mix Galway Noise and Samples, anyone?
+
+*MORE...?
+
+
+
+
+
+TODO: <sidplay2>
+*Change main.cpp to use buffers of size frag <done>
+
+*Find out why the music goes beserk sometimes when syncs are used with SNDCTL_DSP_SYNC <Done>
+
+*Find out why there is a pause after a seconds or so play and try to correct.
+The system seems to start and become heavily loaded and then continue fine.
+Something is happening, not sure what.  Can we make it do whatever it is
+before playback of sound begins.
+
+*Find out why when you step over the Linux sound write function the soundcard
+ plays rubbish (bug)?
+
+*Take audiodrvs from sidplay.
+ Linux <Done>
+ DirectX <Done>
+ Windows MMSYSTEM
+ SPARC
+ SGI
+ HPUX
+
+*Add proper help/error messages for bad command line parameters. <done>
+
+*Convert Wav to a driver <done>
+
+*Anyone want to provide support for other music formats? <IFF?>
+
+*MORE...?
+
+
+//-------------------------------------------------------------------------
+// Information on muting
+Hi!
+
+> When a channel is muted, simply write 0 to that channel's waveform
+> register (e.g. register 4 for channel 1) and keep that register clear
+> until the channel is demuted.
+
+The HardSID Stereo mode needs to mute channels too, so I can tell you
+my solution if you're interested:
+
+Keep the gate bit in 0.
+VoiceBase + 4 = IncomingData AND $FE
+
+> This should be sufficient, but probably it's better to
+> clear the frequency registers also (e.g. 0 and 1 for ch.1), thus avoiding
+> that little noise produced by any SID channel having non-zero frequency
+> value, but so you have to manage that registers when the channel will be
+> demuted (i.e. setting the right frequency).
+
+No mate, don't touch the freq. value, because it'll ruin other voices in the
+tune when it's using ring modulation or synchronization !!!
+
+Keeping the gate bit in 0 should be enough, it works pretty well for the
+HardSID Stereo mode.
+
+Regards,
+Téli Sándor, Hard Software
+//-------------------------------------------------------------------------

@@ -1,0 +1,136 @@
+CHANGES since 2.0.2:
+
+Added:
+
+* Timer
+
+* Support for credits
+
+* Option -fd, overrides values returned by sidtune and forces dual sid support
+  with the second sid being mapped at 0xd500.  Use this to support stereo sids
+  (not stereo mus) until the format is changed to support them properly.
+
+* Windows Drivers.  Code now now be built as a Win32 console application.
+  The include paths need to be changed to Visual C++ so all the headers can
+  be seen.  Paths need are PATH/libsidplay-<ver>/ and PATH/libsidplay-<ver>/win.
+
+* Sparc Driver (This driver hasn't been tested or compiled)
+
+* Support for playing of playsid smaples through reSID
+
+
+Changed:
+
+* Changing the environment whilist the song is playing nolonger stops the song.
+  Environment changes are now delayed until a new song is loaded
+
+* environment class renamed to SidEnvironment to avoid some naming issues with
+  Visual C++.
+
+* xSID minior fixes to make code compile on Visual C++.
+
+* Structure of audio drivers for better auto detection and Win32 support.
+
+* Sidplayer structure now implements Cheshire Cat techniques to hide private members
+  This means that all header files required by private members no longer need to be
+  installed
+
+* Added workaround in CPU code for bug found in Visual C++ 5.
+
+* Finally corrected all playsid digi modes using information provided bu
+  Michael Schwendt from the original source of Game Over.
+
+* Removed nasty code hacks for Windows.
+
+
+Fixed:
+
+* xSID bug preventing it from not playing some samples.
+
+* myTune now initialised to NULL (reported by Jarno)
+
+* Placing of an invalid switch on an otherwise legal line did not throw an error.
+
+* Use of bitfields which breaks portability of CPU emulation
+
+* Unions on Big Endian machines where all variables are varying sizes
+
+
+Issues:
+
+* Timer is actually what has been decoded rather than what has been
+  played.  This is due to the soundcard drivers buffer the samples.
+  Anyway, it's better than nothing.
+
+
+
+CHANGES since 2.0.1:
+
+Added:
+
+* Time count
+
+* xsidplays audio drivers (well linux one)
+
+* Command line options
+
+* Volume controls for left and right
+
+* 8 bit mixer
+
+
+Changed:
+
+* Renamed the project to libsidplay (eventually this code will be a library).
+  main.cpp and the audio directory will form the basis of a new project called
+  sidplay-2.X.X.
+
+* Sidtune.  Only need one player emulation for stereo MUS files.
+
+* WavFile now converted to be another driver. (Makes code have better re-use)
+
+* New are now have error checking
+
+* Configure files now work
+
+* Prevented the loadSong function initialising the player twice.
+
+
+
+CHANGES since 2.0.0:
+
+Added:
+
+* Extended sid support (xSID, written by myself from scratch).  xSIDs interface is designed to look like reSID and can easily be used to help developers of other players.
+
+* Support for all libsidplay-1.X.X environment modes.
+
+* Stereo SID & MUS file support.
+
+* Sid2Wav support (thanks to Michael Schwendt).
+
+
+Fixed:
+
+* CPU using wrong address for reset vector.
+
+* The use of statics in CPU a member function (Required to play stereo MUS files).
+
+
+Changed:
+
+* All data types now use _sidt namespace.
+
+* Better handling of reSID clock calls to seriously reduce CPU overhead.
+
+
+
+CHANGES from libsidplay 1.X.X
+
+* Most of the code has been re-written by myself with all the new emulated IC's being cycle based.
+
+* The interface has been revamped and is based on standard functions provided by a music player e.g. play, stop, pause, etc
+
+* reSID is now the default and currently only provided SID emulation. (written by Dag Lem)
+
+* Sidtune library taken from libsidplay-1.X.X for file support. (written by Michael Schwendt)
