@@ -176,5 +176,8 @@ bool SidTune::PSID_fileSupportSave(ofstream& fMyOut, const ubyte_sidt* dataBuffe
 	// Data starts at: bufferaddr + fileoffset
 	// Data length: datafilelen - fileoffset
 	fMyOut.write( (const char*)dataBuffer + fileOffset, info.dataFileLen - fileOffset );  // !cast!
-	return (fMyOut != 0);
+	if ( !fMyOut )
+		return false;
+	else
+		return true;
 }

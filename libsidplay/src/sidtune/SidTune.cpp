@@ -696,7 +696,7 @@ void SidTune::getFromFiles(const char* fileName)
 					{
 						if ( SID_fileSupport(fileBuf1.get(),fileBuf1.len(),
 											 fileBuf2.get(),fileBuf2.len())
-							&& INFO_fileSupport(fileBuf1.get(),fileBuf1.len(),
+							|| INFO_fileSupport(fileBuf1.get(),fileBuf1.len(),
 											  	fileBuf2.get(),fileBuf2.len())
 							)
 						{
@@ -746,7 +746,7 @@ void SidTune::getFromFiles(const char* fileName)
 
 						if ( SID_fileSupport(fileBuf2.get(),fileBuf2.len(),
 											 fileBuf1.get(),fileBuf1.len())
-							&& INFO_fileSupport(fileBuf2.get(),fileBuf2.len(),
+							|| INFO_fileSupport(fileBuf2.get(),fileBuf2.len(),
 												fileBuf1.get(),fileBuf1.len())
 							)
 						{
@@ -823,11 +823,11 @@ bool SidTune::saveToOpenFile(ofstream& toFile, const ubyte_sidt* buffer,
 	udword_sidt lenToWrite = bufLen;
 	while ( lenToWrite > INT_MAX )
 	{
-		toFile.write( buffer + (bufLen - lenToWrite), INT_MAX );
+		toFile.write((char*)buffer+(bufLen-lenToWrite),INT_MAX);
 		lenToWrite -= INT_MAX;
 	}
 	if ( lenToWrite > 0 )
-		toFile.write( buffer + (bufLen - lenToWrite), lenToWrite );
+		toFile.write((char*)buffer+(bufLen-lenToWrite),lenToWrite);
 	if ( toFile.bad() )
 	{
 		info.statusString = _sidtune_txt_fileIoError;
@@ -868,7 +868,7 @@ bool SidTune::saveC64dataFile( const char* fileName, bool overWriteFlag )
 			ubyte_sidt saveAddr[2];
 			saveAddr[0] = info.loadAddr & 255;
 			saveAddr[1] = info.loadAddr >> 8;
-			fMyOut.write( saveAddr, 2 );
+			fMyOut.write((char*)saveAddr,2);
 			// Data starts at: bufferaddr + fileOffset
 			// Data length: info.dataFileLen - fileOffset
 			if ( !saveToOpenFile( fMyOut,cache.get()+fileOffset, info.dataFileLen - fileOffset ) )

@@ -98,7 +98,7 @@ bool SidTune::MUS_fileSupport(Buffer_sidtt<const ubyte_sidt>& musBuf,
 	MUS_setPlayerAddress();
 
 	// Remove trailing empty lines.
-	const int lines = info.numberOfInfoStrings;
+	const int lines = info.numberOfInfoStrings; 
 	{
 		for ( int line = lines-1; line >= 0; line-- )
 		{
@@ -108,7 +108,7 @@ bool SidTune::MUS_fileSupport(Buffer_sidtt<const ubyte_sidt>& musBuf,
 				break;
 		}
 	}
-
+	
 	return true;
 }
 
@@ -631,13 +631,20 @@ bool SidTune::MUS_mergeParts(Buffer_sidtt<const ubyte_sidt>& musBuf,
 	}
 
 	// Install MUS data #1 including load address.
-	memcpy((void *) mergeBuf.get(),musBuf.get(),musBuf.len());
-	
+#ifndef SID_HAVE_BAD_COMPILER
+	memcpy(mergeBuf.get(),musBuf.get(),musBuf.len());
+#else
+	memcpy((void*)mergeBuf.get(),musBuf.get(),musBuf.len());
+#endif
+
 	if ( !strBuf.isEmpty() && info.sidChipBase2!=0 )
 	{
 		// Install MUS data #2 _NOT_ including load address.
-		memcpy((void *) (mergeBuf.get()+musBuf.len()),strBuf.get()+2,
-			   strBuf.len()-2);
+#ifndef SID_HAVE_BAD_COMPILER
+		memcpy(mergeBuf.get()+musBuf.len(),strBuf.get()+2,strBuf.len()-2);
+#else
+		memcpy((void*)(mergeBuf.get()+musBuf.len()),strBuf.get()+2,strBuf.len()-2);
+#endif
    	}
 
 	musBuf.assign(mergeBuf.xferPtr(),mergeBuf.xferLen());
