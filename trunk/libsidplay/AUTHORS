@@ -1,4 +1,4 @@
-LIBSIDPLAY2 is aC64 music player library which integrates the
+LIBSIDPLAY2 is a C64 music player library which integrates the
 reSID SID chip emulation into a cycle-based emulator environment.
 Copyright (c) 2000 Simon White <sidplay2@email.com>
 
@@ -10,6 +10,7 @@ supplied contributions or code was derived from their work:
     Michael Schwendt  - SidTune library, Sid2Wav support
                         and basis for xSID...
     Rainer Sinsch     - For help with the DirectX drivers
+    Jarno Paananen    - 16 bit mixer code.
 
 
 Credit where credit is due, so if I missed anyone please let me know.
