@@ -431,7 +431,7 @@ void MOS6510::DumpState (void)
     case ROLa: case RORa: case SBCa: case SLOa: case SREa: case RLAa:
     case RRAa:
     //ASOa AXSa DCMa INSa LSEa - Optional Opcode Names
-        printf("a  %04x {%02x}", sidlobyte (operand), data);
+        printf("a  %04x {%02x}", operand, data);
     break;
     case SAXa: case STAa: case STXa: case STYa:
 #ifdef FULL_DEBUG
