@@ -527,6 +527,12 @@ bool SidTune::acceptSidTune(const char* dataFileName, const char* infoFileName,
 			return false;
 		}
 	}
+	else
+	{
+		// Provide empty strings.
+		info.path = SidTuneTools::myStrDup("");
+		info.dataFileName = SidTuneTools::myStrDup("");
+	}
 	// Make a copy of the info file name, if available.
 	if ( infoFileName != 0 )
 	{
@@ -541,6 +547,11 @@ bool SidTune::acceptSidTune(const char* dataFileName, const char* infoFileName,
 			return false;
 		}
 		delete[] tmp;
+	}
+	else
+	{
+		// Provide empty string.
+		info.infoFileName = SidTuneTools::myStrDup("");
 	}
 	// Fix bad sidtune set up.
 	if (info.songs > SIDTUNE_MAX_SONGS)
