@@ -3,7 +3,7 @@ AC_INIT(Makefile.am)
 
 AM_CONFIG_HEADER(config.h)
 
-AM_INIT_AUTOMAKE(libsidplay,2.0.3)
+AM_INIT_AUTOMAKE(libsidplay,2.0.4)
 
 AC_CANONICAL_HOST
 
