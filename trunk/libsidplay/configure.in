@@ -73,12 +73,15 @@ AC_CHECK_HEADERS(sys/ioctl.h linux/soundcard.h machine/soundcard.h  \
   soundcard.h sys/audio.h sun/audioio.h sun/dbriio.h sys/audioio.h  \
   audio.h dmedia/audio.h)
 
+sid_audiodrv_libadd=""
 AC_MSG_CHECKING(which audio driver to install)
 case "$host" in
   *linux*) AC_DEFINE(HAVE_OSS,1)
+    sid_audiodrv_libadd="-laudio/oss/liboss.a"
     AC_MSG_RESULT(oss)
        ;;
   *freebsd*) AC_DEFINE(HAVE_OSS,1)
+    sid_audiodrv_libadd="-laudio/oss/liboss.a"
     AC_MSG_RESULT(oss)
        ;;
   *hpux*) AC_DEFINE(HAVE_HPUX,1)
@@ -88,15 +91,20 @@ case "$host" in
     AC_MSG_RESULT(sgi)
        ;;
   *solaris*) AC_DEFINE(HAVE_SUNOS,1)
+    sid_audiodrv_libadd="-laudio/sunos/libsunos.a"
     AC_MSG_RESULT(sparc)
        ;;
   *sunos*) AC_DEFINE(HAVE_SUNOS,1)
+    sid_audiodrv_libadd="-laudio/sunos/libsunos.a"
     AC_MSG_RESULT(sparc)
        ;;
   *netbsd*) AC_DEFINE(HAVE_OSS,1)
+    sid_audiodrv_libadd="-laudio/oss/liboss.a"
     AC_MSG_RESULT(oss)
        ;;
 esac
+AUDIODRV_LDADD="$sid_audiodrv_libadd"
+AC_SUBST(AUDIODRV_LDADD)
 
 dnl Defines the path to the c64 environment file
 AC_DEFINE(SID_ENVIRONMENT_H,"src/c64env.h")

@@ -2254,19 +2254,22 @@ fi
 done
 
 
+sid_audiodrv_libadd=""
 echo $ac_n "checking which audio driver to install""... $ac_c" 1>&6
-echo "configure:2259: checking which audio driver to install" >&5
+echo "configure:2260: checking which audio driver to install" >&5
 case "$host" in
   *linux*) cat >> confdefs.h <<\EOF
 #define HAVE_OSS 1
 EOF
 
+    sid_audiodrv_libadd="-laudio/oss/liboss.a"
     echo "$ac_t""oss" 1>&6
        ;;
   *freebsd*) cat >> confdefs.h <<\EOF
 #define HAVE_OSS 1
 EOF
 
+    sid_audiodrv_libadd="-laudio/oss/liboss.a"
     echo "$ac_t""oss" 1>&6
        ;;
   *hpux*) cat >> confdefs.h <<\EOF
@@ -2285,21 +2288,26 @@ EOF
 #define HAVE_SUNOS 1
 EOF
 
+    sid_audiodrv_libadd="-laudio/sunos/libsunos.a"
     echo "$ac_t""sparc" 1>&6
        ;;
   *sunos*) cat >> confdefs.h <<\EOF
 #define HAVE_SUNOS 1
 EOF
 
+    sid_audiodrv_libadd="-laudio/sunos/libsunos.a"
     echo "$ac_t""sparc" 1>&6
        ;;
   *netbsd*) cat >> confdefs.h <<\EOF
 #define HAVE_OSS 1
 EOF
 
+    sid_audiodrv_libadd="-laudio/oss/liboss.a"
     echo "$ac_t""oss" 1>&6
        ;;
 esac
+AUDIODRV_LDADD="$sid_audiodrv_libadd"
+
 
 cat >> confdefs.h <<\EOF
 #define SID_ENVIRONMENT_H "src/c64env.h"
@@ -2473,6 +2481,7 @@ s%@SID_HAVE_STRNCASECMP@%$SID_HAVE_STRNCASECMP%g
 s%@SID_HAVE_STRCASECMP@%$SID_HAVE_STRCASECMP%g
 s%@SID_HAVE_STRSTREA_H@%$SID_HAVE_STRSTREA_H%g
 s%@SID_HAVE_LONG_FILE_NAMES@%$SID_HAVE_LONG_FILE_NAMES%g
+s%@AUDIODRV_LDADD@%$AUDIODRV_LDADD%g
 
 CEOF
 EOF

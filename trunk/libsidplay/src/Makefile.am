@@ -1,7 +1,7 @@
 ####### kdevelop will overwrite this part!!! (begin)##########
 bin_PROGRAMS = libsidplay
 libsidplay_SOURCES = sidmixer.cpp sidplayer.cpp fake6526.cpp main.cpp 
-libsidplay_LDADD   = ./mos6510/libmos6510.a ./xsid/libxsid.a ./sidtune/libsidtune.a ./audio/oss/liboss.a ./audio/wav/libwav.a ./audio/directx/libdirectx.a ./audio/sunos/libsunos.a $(RESID_LDADD) -lresid
+libsidplay_LDADD   = ./mos6510/libmos6510.a ./xsid/libxsid.a ./sidtune/libsidtune.a ./audio/wav/libwav.a $(AUDIODRV_LDADD) $(RESID_LDADD) -lresid
 
 SUBDIRS = mos6510 xsid sidtune audio mos6581 docs 
 
