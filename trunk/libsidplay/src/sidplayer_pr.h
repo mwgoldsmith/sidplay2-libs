@@ -30,7 +30,6 @@ class sidplayer_pr: private C64Environment
 {
 private:
     //SID6510  cpu(6510, "Main CPU");
-//    SID6510  cpu;
     SID6510  cpu;
     SID      sid;
     SID      sid2;
@@ -48,6 +47,7 @@ private:
     env_sidt      _requiredEnv;
     playback_sidt _playback;
     udword_sidt   _samplingFreq;
+    ubyte_sidt    _precision;
 
     // Rev 2.0.3 Added - New Mixer
     udword_sidt   _leftVolume;
@@ -55,6 +55,16 @@ private:
     bool          _sid2Enabled;
     bool          _forceDualSids;
     ubyte_sidt    _optimiseLevel;
+
+    // Rev 2.0.4 (saw) - Added for new timer support
+    udword_sidt   _scaleBuffer;
+    double        _samplingPeriod;
+    double        _currentPeriod;
+    udword_sidt   _sampleCount;
+    udword_sidt   _seconds;
+    bool          _updateClock;
+    udword_sidt   _playLength;
+    udword_sidt   _channels;
 
     // C64 environment settings
     double        _cpuFreq;
@@ -103,21 +113,36 @@ private:
 
     // Rev 2.0.3 Added - New Mixer Routines
     void (sidplayer_pr::*output) (uword_sidt clock, void *buffer, udword_sidt &count);
+
+    // Rev 2.0.4 (saw) - Added to reduce code size
+    sdword_sidt monoOutGenericMonoIn     (uword_sidt clock, udword_sidt &count, ubyte_sidt bits);
+    sdword_sidt monoOutGenericStereoIn   (uword_sidt clock, udword_sidt &count, ubyte_sidt bits);
+    sdword_sidt monoOutGenericStereoRIn  (uword_sidt clock, udword_sidt &count, ubyte_sidt bits);
+    sdword_sidt stereoOutGenericMonoIn   (uword_sidt clock, udword_sidt &count, ubyte_sidt bits);
+    sdword_sidt stereoOutGenericStereoIn (uword_sidt clock, udword_sidt &count, ubyte_sidt bits, sdword_sidt &sampleR);
+
+    // 8 bit output
     void monoOut8MonoIn      (uword_sidt clock, void *buffer, udword_sidt &count);
     void monoOut8StereoIn    (uword_sidt clock, void *buffer, udword_sidt &count);
-    void leftOut8StereoIn    (uword_sidt clock, void *buffer, udword_sidt &count);
-    void rightOut8StereoIn   (uword_sidt clock, void *buffer, udword_sidt &count);
+    void monoOut8StereoRIn   (uword_sidt clock, void *buffer, udword_sidt &count);
     void stereoOut8MonoIn    (uword_sidt clock, void *buffer, udword_sidt &count);
     void stereoOut8StereoIn  (uword_sidt clock, void *buffer, udword_sidt &count);
+
+    // Rev 2.0.4 (jp) - Added 16 bit support
+    void monoOut16MonoIn      (uword_sidt clock, void *buffer, udword_sidt &count);
+    void monoOut16StereoIn    (uword_sidt clock, void *buffer, udword_sidt &count);
+    void monoOut16StereoRIn   (uword_sidt clock, void *buffer, udword_sidt &count);
+    void stereoOut16MonoIn    (uword_sidt clock, void *buffer, udword_sidt &count);
+    void stereoOut16StereoIn  (uword_sidt clock, void *buffer, udword_sidt &count);
 
 private:
     friend sidplayer;
     sidplayer_pr ();
     virtual ~sidplayer_pr ();
 
-    void        configure    (playback_sidt mode, udword_sidt samplingFreq, bool forceDualSid);
+    int         configure    (playback_sidt mode, udword_sidt samplingFreq, ubyte_sidt precision, bool forceDualSid);
     void        stop         (void);
-    void        paused       (void);
+    void        pause        (void);
     udword_sidt play         (void *buffer, udword_sidt length);
     int         loadSong     (const char * const title, const uword_sidt songNumber);
     int         loadSong     (SidTune *requiredTune);
@@ -128,6 +153,16 @@ private:
         if (level > SIDPLAYER_MAX_OPTIMISATION)
             level = SIDPLAYER_MAX_OPTIMISATION;
         _optimiseLevel = level;
+    }
+
+    // Rev 2.0.4 (saw) - Added new timer functions
+    void        playLength   (udword_sidt seconds);
+    udword_sidt time         (void) { return _seconds; }
+    bool        updateClock  (void)
+    {
+        bool update  = _updateClock;
+        _updateClock = false;
+        return update;
     }
 };
 

@@ -20,10 +20,16 @@
 
 #include "sidtypes.h"
 #include "sidtune/SidTune.h"
-#define  SIDPLAYER_DEFAULT_SAMPLING_FREQ 22050
-#define  SIDPLAYER_MAX_OPTIMISATION 3
 
-typedef enum {left = 0, mono, stereo, right} playback_sidt;
+// Default settings
+const udword_sidt SIDPLAYER_DEFAULT_SAMPLING_FREQ = 44100;
+const ubyte_sidt SIDPLAYER_DEFAULT_PRECISION = 16;
+
+// Maximum values
+const ubyte_sidt SIDPLAYER_MAX_PRECISION = 16;
+const int SIDPLAYER_MAX_OPTIMISATION = 3;
+
+typedef enum {sid_left = 0, sid_mono, sid_stereo, sid_right} playback_sidt;
 typedef enum {playsid = 0, sidplaytp, sidplaybs, real} env_sidt;
 
 typedef struct
@@ -47,15 +53,20 @@ public:
     sidplayer ();
     virtual ~sidplayer ();
 
-    void        configure    (playback_sidt mode, udword_sidt samplingFreq, bool forceDualSid);
+    void        configure    (playback_sidt mode, udword_sidt samplingFreq, ubyte_sidt precision, bool forceDualSid);
     void        stop         (void);
-    void        paused       (void);
+    void        pause        (void);
     udword_sidt play         (void *buffer, udword_sidt length);
     int         loadSong     (const char * const title, const uword_sidt songNumber);
     int         loadSong     (SidTune *requiredTune);
     void        environment  (env_sidt env);
     void        getInfo      (playerInfo_sidt *info);
     void        optimisation (ubyte_sidt level);
+
+    // Rev 2.0.4 (saw) - Added new timer functions
+    udword_sidt time         (void);
+    bool        updateClock  (void);
+    void        playLength   (udword_sidt seconds);
 
     operator bool()  const { return (player ? true: false); }
     bool operator!() const { return (player ? false: true); }

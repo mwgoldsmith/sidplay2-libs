@@ -51,18 +51,21 @@ enum
     ERR_FILE_OPEN
 };
 
+// Global variables
+static sidplayer  player;
+static AudioBase *audioDrv = NULL;
+
+// Function prototypes
 static void displayError  (char* arg0, int num);
 static void displaySyntax (char* arg0);
-
+// Rev 2.0.4 (saw) - Added for better MAC support
+static inline bool generateMusic (AudioConfig &cfg, void *buffer);
+static void cleanup (void);
 
 int main(int argc, char *argv[])
-{   // Configuration for audio drv
-    ubyte_sidt    channels = 1;       // Mono
-    udword_sidt   fs       = SIDPLAYER_DEFAULT_SAMPLING_FREQ;
-
+{
     uword_sidt    selectedSong = 0;
-    playback_sidt playback     = mono;
-    sidplayer     player;
+    playback_sidt playback     = sid_mono;
     env_sidt      playerMode   = sidplaybs;
 
     bool          wavOutput     = false;
@@ -75,21 +78,25 @@ int main(int argc, char *argv[])
     ubyte_sidt    optimiseLevel = 1;
 
     // New...
-    AudioBase    *audioDrv   = NULL;
     AudioConfig   audioCfg;
 
+    audioCfg.frequency = SIDPLAYER_DEFAULT_SAMPLING_FREQ;;
+    audioCfg.precision = SIDPLAYER_DEFAULT_PRECISION;
+    audioCfg.channels  = 1; // Mono
+	
     if (argc < 2) // at least one argument required
     {
         displayError (argv[0], ERR_SYNTAX);
-        exit (EXIT_ERROR_STATUS);
+        goto main_error;
     }
 
     // parse command line arguments
     while ((i < argc) && (argv[i] != NULL))
     {
         int x = 0;
-        if ((argv[i][x++] == '-') && (strlen(argv[i]) != 1))
+        if ((argv[i][0] == '-') && (argv[i][1] != '\0'))
         {
+			x++;
             switch (argv[i][x++])
             {
             case 'f':
@@ -97,7 +104,7 @@ int main(int argc, char *argv[])
                 {
                 case '\0':
                     // User forgot frequency number
-                    x--;
+                    x = 0;
                 break;
 
                 case 'd':
@@ -106,7 +113,7 @@ int main(int argc, char *argv[])
                 break;
 
                 default:
-                    fs = atoi(argv[i] + x - 1);
+                    audioCfg.frequency = atoi(argv[i] + x - 1);
                     // Show that all string was processed
                     while (argv[i][x] != '\0')
                         x++;
@@ -117,7 +124,7 @@ int main(int argc, char *argv[])
             case 'o':
                 if (argv[i][x] == '\0')
                 {   // User forgot track number
-                    x--;
+                    x = 0;
                     break;
                 }
 
@@ -130,7 +137,7 @@ int main(int argc, char *argv[])
             case 'O':
                 if (argv[i][x] == '\0')
                 {   // User optimisation level
-                    x--;
+                    x = 0;
                     break;
                 }
 
@@ -138,6 +145,32 @@ int main(int argc, char *argv[])
                 // Show that all string was processed
                 while (argv[i][x] != '\0')
                     x++;
+            break;
+
+            case 'p':
+                if (argv[i][x] == '\0')
+                {
+                    // User forgot precision
+                    x = 0;
+                }
+
+                {
+                    ubyte_sidt precision = atoi(argv[i] + x);
+                    if (precision <= 8)
+                        precision = 8;
+                    else if (precision <= 16)
+                        precision = 16;
+                    else
+                        precision = 24;
+
+                    if (precision > SIDPLAYER_MAX_PRECISION)
+                        precision = SIDPLAYER_MAX_PRECISION;
+                    audioCfg.precision = precision;
+
+                    // Show that all string was processed
+                    while (argv[i][x] != '\0')
+                        x++;
+                }
             break;
 
             // Player Mode (Environment) Options
@@ -168,21 +201,21 @@ int main(int argc, char *argv[])
                 {
                 case '\0':
      	            // Select Dual SIDS
-                    playback = stereo;
-                    channels = 2; // Stereo
+                    playback = sid_stereo;
+                    audioCfg.channels = 2; // Stereo
                     x--;
                 break;
 
                 case 'l':
                     // Left Channel
-                    playback = left;
-                    channels = 1; // Mono
+                    playback = sid_left;
+                    audioCfg.channels = 1; // Mono
                 break;
 
                 case 'r':
                     // Right Channel
-                    playback = right;
-                    channels = 1; // Mono
+                    playback = sid_right;
+                    audioCfg.channels = 1; // Mono
                 break;
 
                 default:
@@ -238,7 +271,7 @@ int main(int argc, char *argv[])
             if (argv[i][x] != '\0')
             {
                 displaySyntax (argv[0]);
-                exit (EXIT_ERROR_STATUS);
+                goto main_error;
             }
         }
         else
@@ -250,7 +283,7 @@ int main(int argc, char *argv[])
             else
             {
                 displayError (argv[0], ERR_SYNTAX);
-                exit (EXIT_ERROR_STATUS);
+                goto main_error;
             }
         }
         i++;  // next index
@@ -261,10 +294,6 @@ int main(int argc, char *argv[])
 		displaySyntax(argv[0]);
         exit(0);
     }
-
-    audioCfg.frequency = fs;
-    audioCfg.precision = 8;
-    audioCfg.channels  = channels;
 
     if (!wavOutput)
     {
@@ -277,28 +306,31 @@ int main(int argc, char *argv[])
         if (!audioDrv)
         {
             displayError (argv[0], ERR_NOT_ENOUGH_MEMORY);
-            exit (EXIT_ERROR_STATUS);
+            goto main_error;
         }
 
         nextBuffer = (ubyte_sidt *) audioDrv->open (audioCfg);
         if (!nextBuffer)
         {
-            cout << argv[0] << audioDrv->getErrorString () << endl;
-            exit (EXIT_ERROR_STATUS);
+            cout << argv[0] << " " << audioDrv->getErrorString () << endl;
+            goto main_error;
         }
-
-        // Now see what we actually got from the driver
-        fs       = audioCfg.frequency;
-        channels = audioCfg.channels;
     }
 
-    player.configure    (playback, fs, force2SID);
+    // Check to make sure that hardware supports stereo
+    if (playback == sid_stereo)
+    {
+        if (audioCfg.channels != 2)
+            playback = sid_mono;
+    }
+
+    player.configure    (playback, audioCfg.frequency, audioCfg.precision, force2SID);
     player.optimisation (optimiseLevel);
     player.environment  (playerMode);
     if (player.loadSong (argv[sidFile], selectedSong) == -1)
     {
         displayError (argv[0], ERR_FILE_OPEN);
-        exit (EXIT_ERROR_STATUS);
+        goto main_error;
     }
 
     if (wavOutput)
@@ -332,15 +364,15 @@ int main(int argc, char *argv[])
         if (!wavFile)
         {
             displayError (argv[0], ERR_NOT_ENOUGH_MEMORY);
-            exit (EXIT_ERROR_STATUS);
+            goto main_error;
         }
 
         audioDrv   = wavFile;
         nextBuffer = (ubyte_sidt *) wavFile->open (audioCfg, wavName, true);
         if (!nextBuffer)
         {
-            cout << argv[0] << wavFile->getErrorString () << endl;
-            exit (EXIT_ERROR_STATUS);
+            cout << argv[0] << " " << wavFile->getErrorString () << endl;
+            goto main_error;
         }
 
         if (!runtime)
@@ -350,13 +382,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    // Generate the music (Never blocks)
-    udword_sidt     count;
-    udword_sidt     ret;
-    ubyte_sidt     *pBuffer;
-    udword_sidt     bufferSize = audioCfg.bufSize;
     playerInfo_sidt playerInfo;
-
     player.getInfo (&playerInfo);
 
     cout << "SIDPLAY - Music Player and C64 SID Chip Emulator" << endl;
@@ -374,12 +400,7 @@ int main(int argc, char *argv[])
     {
         cout << "File format  : " << playerInfo.tuneInfo.formatString << endl;
         cout << "Filenames    : " << playerInfo.tuneInfo.dataFileName << ", ";
-        // Rev 2.0.3 (saw):  Changed to fix problem if infoFileName is NULL.
-        // Having NULL is fine for GCC but causes an access violation on Visual C++
-        if (playerInfo.tuneInfo.infoFileName)
-            cout << playerInfo.tuneInfo.infoFileName << endl;
-        else
-            cout << "(null)" << endl;
+        cout << playerInfo.tuneInfo.infoFileName << endl;
         cout << "Condition    : " << playerInfo.tuneInfo.statusString << endl;
 	}
 
@@ -444,52 +465,52 @@ int main(int argc, char *argv[])
 
     // Get all the text to the screen so music playback
     // is not disturbed.
-    cout << setw(2) << setfill('0') << ((runtime / 60) % 100) << ':'
-		 << setw(2) << setfill('0') << (runtime % 60) << flush;
+    player.playLength (runtime);
+    cout << setw(2) << setfill('0') << ((runtime / 60) % 100)
+         << ':' << setw(2) << setfill('0') << (runtime % 60) << flush;
 
-    // Playing real sound...
-    udword_sidt   seconds = 0;
-    unsigned long samplesPlayed = 0;
-    i = 0; // We are using to caches to help
-           // improve playback speed
-
+    // Play loop
+    bool keepPlaying;
     FOREVER
     {
-        count          = bufferSize;
-        samplesPlayed += (count / channels);
-        pBuffer = nextBuffer;
-        // Fill buffer
-        while (count)
-        {
-            ret      = player.play (pBuffer, count);
-            count   -= ret;
-            pBuffer += ret;
-        }
+        keepPlaying = generateMusic (audioCfg, nextBuffer);
+        nextBuffer  = (ubyte_sidt *) audioDrv->write ();
 
-        nextBuffer = (ubyte_sidt *) audioDrv->write ();
-        if (samplesPlayed > fs)
-        {   // Calculate play time
-            samplesPlayed -= fs;
-            if (runtime)
-            {
-                seconds = --runtime;
-            }
-            else
-                seconds++;
-            cout << "\b\b\b\b\b" << setw(2) << setfill('0') << ((seconds / 60) % 100)
-				 << ':' << setw(2) << setfill('0') << (seconds % 60) << flush;
-            if (!seconds)
+        if (!keepPlaying)
+        {   // Check to see if we haven't got an
+            // infinite play length
+            udword_sidt secs = player.time ();
+            if (runtime && !secs)
                 break;
         }
     }
 
     // Clean up
-    audioDrv->close ();
-    delete audioDrv;
-    cout << endl;
+    cleanup ();
     return EXIT_SUCCESS;
+
+main_error:
+    cleanup ();
+    exit (EXIT_ERROR_STATUS);
 }
 
+bool generateMusic (AudioConfig &cfg, void *buffer)
+{   // Fill buffer
+    if (!player.play (buffer, cfg.bufSize))
+        return false;
+
+    // Check to see if the clock requires updating
+    if (player.updateClock ())
+    {
+        udword_sidt seconds = player.time();
+        cout << "\b\b\b\b\b" << setw(2) << setfill('0') << ((seconds / 60) % 100)
+		     << ':' << setw(2) << setfill('0') << (seconds % 60) << flush;
+//        if (!seconds)
+            return false;
+    }
+
+    return true;
+}
 
 void displayError (char* arg0, int num)
 {
@@ -525,20 +546,14 @@ void displaySyntax (char* arg0)
         << "Syntax: " << arg0 << " [-<option>...] <datafile>" << endl
         << "Options:" << endl
         << " --help|-h    display this screen" << endl
-#if SID_MAX_SOUND_RES >= 16
-        << " -16          enable 16-bit sample mixing" << endl
-#   if SID_MAX_SOUND_RES >= 24
-        << " -24          enable 24-bit sample mixing" << endl
-#   endif
-#endif
-        << " -f<num>      set frequency in Hz (default: 22050)" << endl
+
+        << " -f<num>      set frequency in Hz (default: "
+        << SIDPLAYER_DEFAULT_SAMPLING_FREQ << ")" << endl
         << " -fc          force song speed = clock speed (PAL[-vp]/NTSC[-vn])" << endl
         << " -fd          force dual sid environment" << endl
 
 #if !defined(DISALLOW_STEREO_SOUND)
-        << " -s           stereo sid support" << endl
-        << " -sl          left stereo channel only" << endl
-        << " -sr          right stereo channel only" << endl
+        << " -s[l|r]      stereo sid support or [left/right] channel only" << endl
 #endif
 
 // Old options are hidden
@@ -554,6 +569,9 @@ void displaySyntax (char* arg0)
         << " -O<num>      optimisation level, max is " << (SIDPLAYER_MAX_OPTIMISATION - 1)
         << " (default: 1)" << endl
 
+        << " -p<num>      set bit precision for samples. " << "(default: "
+        << SIDPLAYER_DEFAULT_PRECISION << ")" << endl
+		
         << " -t<num>      set play length in [m:]s format (0 is endless)" << endl
 
         << " -v           verbose output" << endl
@@ -563,5 +581,14 @@ void displaySyntax (char* arg0)
         << " -w           create wav file (default: <datafile>.wav)" << endl
 //        << " -w<name>     explicitly defines wav output name" << endl
         << endl
-        << "Mail comments, bug reports, or contributions to <sidplay2@email.com>." << endl;
+//        << "Mail comments, bug reports, or contributions to <sidplay2@email.com>." << endl;
+        << "Project main page: http://sourceforge.net/projects/sidplay2/" << endl;
 }
+
+void cleanup (void)
+{
+    if (audioDrv)
+        delete audioDrv;
+    cout << endl;
+}
+

@@ -16,42 +16,41 @@
  ***************************************************************************/
 #include "sidplayer_pr.h"
 
-#define VOLUME_MAX_8BIT 255
+const ubyte_sidt VOLUME_MAX = 255;
 
-void sidplayer_pr::monoOut8MonoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+//-------------------------------------------------------------------------
+// Generic sound output generation routines
+//-------------------------------------------------------------------------
+//inline
+sdword_sidt sidplayer_pr::monoOutGenericMonoIn (uword_sidt clock, udword_sidt &count, ubyte_sidt bits)
 {
-    sword_sidt sample;
-    ubyte_sidt *buf;
+    sdword_sidt sample;
+    count++;
 
     if (_optimiseLevel > 1)
     {
         sid.clock  (clock);
         xsid.clock (clock);
     }
-    sample  = sid.output (8);
+    sample  = sid.output (bits);
 
 #ifndef XSID_USE_SID_VOLUME
     sample *= 3;
-    sample += xsid.output (8);
+    sample += xsid.output (bits);
     sample /= 4;
 #endif
 
     // Apply volume
     sample *= _leftVolume;
-    sample /= VOLUME_MAX_8BIT;
-
-    //    if (_encoding == PCM_UNSIGNED)
-        sample += 128;
-
-    buf  = (ubyte_sidt *) buffer + count;
-    *buf = (ubyte_sidt) sample;
-    count++;
+    sample /= VOLUME_MAX;
+    return sample;
 }
 
-void sidplayer_pr::monoOut8StereoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+//inline
+sdword_sidt sidplayer_pr::monoOutGenericStereoIn (uword_sidt clock, udword_sidt &count, ubyte_sidt bits)
 {
-    sword_sidt sampleL, sampleR, sample;
-    ubyte_sidt *buf;
+    sdword_sidt sampleL, sampleR;
+    count++;
 
     if (_optimiseLevel > 1)
     {
@@ -59,130 +58,82 @@ void sidplayer_pr::monoOut8StereoIn (uword_sidt clock, void *buffer, udword_sidt
         sid2.clock (clock);
         xsid.clock (clock);
     }
-    sampleL = sid.output  (8);
-    sampleR = sid2.output (8);
+    sampleL = sid.output  (bits);
+    sampleR = sid2.output (bits);
 
 #ifndef XSID_USE_SID_VOLUME
     sword_sidt sampleX;
     sampleL *= 3;
     sampleR *= 3;
-    sampleX  = xsid.output (8);
+    sampleX  = xsid.output (bits);
     sampleL  = (sampleL + sampleX) / 4;
     sampleR  = (sampleR + sampleX) / 4;
 #endif
 
     // Apply volume
     sampleL *= _leftVolume;
-    sampleL /= VOLUME_MAX_8BIT;
+    sampleL /= VOLUME_MAX;
     sampleR *= _rightVolume;
-    sampleR /= VOLUME_MAX_8BIT;
-
+    sampleR /= VOLUME_MAX;
     // Convert to mono
-    sample   = (sampleL + sampleR) / 2;
-
-    //    if (_encoding == PCM_UNSIGNED)
-        sample += 128;
-
-    buf  = (ubyte_sidt *) buffer + count;
-    *buf = (ubyte_sidt) sample;
-    count++;
+    return (sampleL + sampleR) / 2;
 }
 
-void sidplayer_pr::leftOut8StereoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+//inline
+sdword_sidt sidplayer_pr::monoOutGenericStereoRIn (uword_sidt clock, udword_sidt &count, ubyte_sidt bits)
 {
-    sword_sidt sample;
-    ubyte_sidt *buf;
-
-    if (_optimiseLevel > 1)
-    {
-        sid.clock  (clock);
-        xsid.clock (clock);
-    }
-    sample  = sid.output (8);
-
-#ifndef XSID_USE_SID_VOLUME
-    sample *= 3;
-    sample += xsid.output (8);
-    sample /= 4;
-#endif
-
-    // Apply volume
-    sample *= _leftVolume;
-    sample /= VOLUME_MAX_8BIT;
-
-    //    if (_encoding == PCM_UNSIGNED)
-        sample += 128;
-
-    buf  = (ubyte_sidt *) buffer + count;
-    *buf = (ubyte_sidt) sample;
+    sdword_sidt sample;
     count++;
-}
-
-void sidplayer_pr::rightOut8StereoIn (uword_sidt clock, void *buffer, udword_sidt &count)
-{
-    sword_sidt sample;
-    ubyte_sidt *buf;
-
+	
     if (_optimiseLevel > 1)
     {
         sid2.clock (clock);
         xsid.clock (clock);
     }
-    sample  = sid2.output (8);
+    sample  = sid2.output (bits);
 
 #ifndef XSID_USE_SID_VOLUME
     sample *= 3;
-    sample += xsid.output (8);
+    sample += xsid.output (bits);
     sample /= 4;
 #endif
 
     // Apply volume
     sample *= _rightVolume;
-    sample /= VOLUME_MAX_8BIT;
-   
-    //    if (_encoding == PCM_UNSIGNED)
-        sample += 128;
-
-    buf  = (ubyte_sidt *) buffer + count;
-    *buf = (ubyte_sidt) sample;
-    count++;
+    sample /= VOLUME_MAX;
+    return sample;
 }
 
-void sidplayer_pr::stereoOut8MonoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+//inline
+sdword_sidt sidplayer_pr::stereoOutGenericMonoIn (uword_sidt clock, udword_sidt &count, ubyte_sidt bits)
 {
-    sword_sidt sample;
-    ubyte_sidt *buf;
+    sdword_sidt sample;
+	count += 2;
 
     if (_optimiseLevel > 1)
     {
         sid.clock  (clock);
         xsid.clock (clock);
     }
-    sample  = sid.output (8);
+    sample  = sid.output (bits);
 
 #ifndef XSID_USE_SID_VOLUME
     sample *= 3;
-    sample += xsid.output (8);
+    sample += xsid.output (bits);
     sample /= 4;
 #endif
 
     // Apply volume
     sample *= _leftVolume;
-    sample /= VOLUME_MAX_8BIT;
-   
-    //    if (_encoding == PCM_UNSIGNED)
-        sample += 128;
-
-    buf    = (ubyte_sidt *) buffer + count;
-    *buf++ = (ubyte_sidt) sample;
-    *buf   = (ubyte_sidt) sample;
-    count += 2;
+    sample /= VOLUME_MAX;
+    return sample;
 }
 
-void sidplayer_pr::stereoOut8StereoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+//inline
+sdword_sidt sidplayer_pr::stereoOutGenericStereoIn (uword_sidt clock, udword_sidt &count, ubyte_sidt bits, sdword_sidt &sampleR)
 {
-    sword_sidt sampleL, sampleR;
-    ubyte_sidt *buf;
+    sdword_sidt sampleL;
+    count += 2;
 
     if (_optimiseLevel > 1)
     {
@@ -190,32 +141,98 @@ void sidplayer_pr::stereoOut8StereoIn (uword_sidt clock, void *buffer, udword_si
         sid2.clock (clock);
         xsid.clock (clock);
     }
-    sampleL = sid.output  (8);
-    sampleR = sid2.output (8);
+    sampleL = sid.output  (bits);
+    sampleR = sid2.output (bits);
 
 #ifndef XSID_USE_SID_VOLUME
-    sword_sidt sampleX;
+    sdword_sidt sampleX;
     sampleL *= 3;
     sampleR *= 3;
-    sampleX  = xsid.output (8);
+    sampleX  = xsid.output (bits);
     sampleL  = (sampleL + sampleX) / 4;
     sampleR  = (sampleR + sampleX) / 4;
 #endif
 
     // Apply volume
     sampleL *= _leftVolume;
-    sampleL /= VOLUME_MAX_8BIT;
+    sampleL /= VOLUME_MAX;
     sampleR *= _rightVolume;
-    sampleR /= VOLUME_MAX_8BIT;
-   
-    //    if (_encoding == PCM_UNSIGNED)
-    //    {
-        sampleL += 128;
-        sampleR += 128;
-	//    }
-
-    buf    = (ubyte_sidt *) buffer + count;
-    *buf++ = (ubyte_sidt) sampleL;
-    *buf   = (ubyte_sidt) sampleR;
-    count += 2;
+    sampleR /= VOLUME_MAX;
+    return sampleL;  // sampleR is reference
 }
+
+//-------------------------------------------------------------------------
+// 8 bit sound output generation routines
+//-------------------------------------------------------------------------
+void sidplayer_pr::monoOut8MonoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+{   // Get sample(s)
+    sbyte_sidt *buf = (sbyte_sidt *) buffer + count;
+    sbyte_sidt sample = (sbyte_sidt) monoOutGenericMonoIn (clock, count, 8);
+    *buf = sample ^ '\x80';
+}
+
+void sidplayer_pr::monoOut8StereoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+{   // Get sample(s)
+    sbyte_sidt *buf = (sbyte_sidt *) buffer + count;
+    sbyte_sidt sample = (sbyte_sidt) monoOutGenericStereoIn (clock, count, 8);
+    *buf = sample ^ '\x80';
+}
+
+void sidplayer_pr::monoOut8StereoRIn (uword_sidt clock, void *buffer, udword_sidt &count)
+{   // Get sample(s)
+    sbyte_sidt *buf = (sbyte_sidt *) buffer + count;
+    sbyte_sidt sample = (sbyte_sidt) monoOutGenericStereoRIn (clock, count, 8);
+    *buf = sample ^ '\x80';
+}
+
+void sidplayer_pr::stereoOut8MonoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+{   // Get sample(s)
+    sbyte_sidt *buf = (sbyte_sidt *) buffer + count;
+    sbyte_sidt sample = (sbyte_sidt) stereoOutGenericMonoIn (clock, count, 8);
+    *buf = sample ^ '\x80';
+}
+
+void sidplayer_pr::stereoOut8StereoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+{
+    sbyte_sidt *buf = (sbyte_sidt *) buffer + count;
+    sdword_sidt sampleR; // Need to get direct. Only sampleL is returned.
+    sbyte_sidt sample = (sbyte_sidt) stereoOutGenericStereoIn (clock, count, 8, sampleR);
+    *buf++ = sample ^ '\x80';
+    *buf = (sbyte_sidt) sampleR ^ '\x80';
+}
+
+//-------------------------------------------------------------------------
+// 16 bit sound output generation routines
+//-------------------------------------------------------------------------
+void sidplayer_pr::monoOut16MonoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+{   // Get sample(s)
+    sword_sidt *buf = (sword_sidt *) buffer + count;
+    *buf = (sword_sidt) monoOutGenericMonoIn (clock, count, 16);
+}
+
+void sidplayer_pr::monoOut16StereoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+{   // Get sample(s)
+    sword_sidt *buf = (sword_sidt *) buffer + count;
+    *buf = (sword_sidt) monoOutGenericStereoIn (clock, count, 16);
+}
+
+void sidplayer_pr::monoOut16StereoRIn (uword_sidt clock, void *buffer, udword_sidt &count)
+{   // Get sample(s)
+    sword_sidt *buf = (sword_sidt *) buffer + count;
+    *buf = (sword_sidt) monoOutGenericStereoRIn (clock, count, 16);
+}
+
+void sidplayer_pr::stereoOut16MonoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+{   // Get sample(s)
+    sword_sidt *buf = (sword_sidt *) buffer + count;
+    *buf = (sword_sidt) stereoOutGenericMonoIn (clock, count, 16);
+}
+
+void sidplayer_pr::stereoOut16StereoIn (uword_sidt clock, void *buffer, udword_sidt &count)
+{
+    sword_sidt *buf = (sword_sidt *) buffer + count;
+    sdword_sidt sampleR; // Need to get direct. Only sampleL is returned.
+    *buf++ = (sword_sidt) stereoOutGenericStereoIn (clock, count, 16, sampleR);
+    *buf   = (sword_sidt) sampleR;
+}
+
