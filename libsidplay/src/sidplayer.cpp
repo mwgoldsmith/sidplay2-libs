@@ -57,11 +57,15 @@ sidplayer_pr::sidplayer_pr (void)
     myTune = tune  = NULL;
     ram    = (rom  = NULL);
     _environment   = _requiredEnv = sidplaybs;
-    _playback      = mono;
-    _samplingFreq  = SIDPLAYER_DEFAULT_SAMPLING_FREQ;
     playerState    = _stopped;
     // Added Rev 2.0.3
     _forceDualSids = false;
+    _channels      = 1;
+
+    // Rev 2.0.4 (saw) - Added
+    _playLength    = 0;
+    configure (sid_mono, SIDPLAYER_DEFAULT_SAMPLING_FREQ,
+               SIDPLAYER_DEFAULT_PRECISION, false);
 
     // Temp @TODO@
     _leftVolume    = 255;
@@ -75,21 +79,64 @@ sidplayer_pr::~sidplayer_pr ()
         delete myTune;
 }
 
-void sidplayer_pr::configure (playback_sidt playback, udword_sidt samplingFreq, bool forceDualSids)
+int sidplayer_pr::configure (playback_sidt playback, udword_sidt samplingFreq, ubyte_sidt precision, bool forceDualSids)
 {
-    _playback      = playback;
-    _samplingFreq  = samplingFreq;
+    if (playerState != _stopped)
+        return -1;
+
+    // Check for bas sampling frequency
+    if (!samplingFreq)
+        return -1;
+
+    // Check for legal precision
+    switch (precision)
+    {
+    case 8:
+    case 16:
+    case 24:
+        if (precision > SIDPLAYER_MAX_PRECISION)
+            return -1;
+        _precision = precision;
+    break;
+
+    default:
+        return -1;
+    }
+
+    _playback       = playback;
+    _channels       = 1;
+    if (_playback == sid_stereo)
+        _channels   = 2;
+    _samplingFreq   = samplingFreq;
     // Added Rev 2.0.3
-    _forceDualSids = forceDualSids;
+    _forceDualSids  = forceDualSids;
+    // Rev 2.0.4 (saw) - Added for 16 bit and new timer
+    _scaleBuffer    = (precision / 8);
+    _samplingPeriod = _cpuFreq / (double) samplingFreq;
+    return 0;
+}
+
+void sidplayer_pr::playLength (udword_sidt seconds)
+{   // If seconds is zero, playback is unlimited or
+    // the proper time if known.
+    _playLength = seconds;
+
+    // Can't effect the clock if it's already playing
+    // Catch it next time
+    if (playerState == _stopped)
+    {
+        _seconds = _playLength;
+        _updateClock   = true;
+    }
 }
 
 // Stops the emulation routine
 void sidplayer_pr::stop (void)
 {
-    (void) initialise ();
+    playerState = _stopped;
 }
 
-void sidplayer_pr::paused (void)
+void sidplayer_pr::pause (void)
 {
     playerState = _paused;
 }
@@ -124,14 +171,15 @@ void sidplayer_pr::nextSequence ()
 
 udword_sidt sidplayer_pr::play (void *buffer, udword_sidt length)
 {
-    udword_sidt count     = 0;
-    uword_sidt  clock     = 0;
-    double samplingCount  = 0; // Move this and have it reset on initialise
-    double samplingPeriod = _cpuFreq / (double) _samplingFreq;
+    udword_sidt count = 0;
+    uword_sidt  clock = 0;
 
     // Make sure a tune is loaded
     if (!tune)
         return 0;
+
+    // Change size from generic units to native units
+    length /= _scaleBuffer;
 
     // Start the player loop
     playerState = _playing;
@@ -151,9 +199,9 @@ udword_sidt sidplayer_pr::play (void *buffer, udword_sidt length)
             // and are now only clocked when an output it required
             // Only clock second sid if we want to hear right channel or
             // stereo.  However having this results in better playback
-            if (_playback <= stereo)
+            if (_playback <= sid_stereo)
                 sid.clock ();
-            if (_playback > mono)
+            if (_playback > sid_mono)
                 sid2.clock ();
             xsid.clock ();
         }
@@ -162,20 +210,54 @@ udword_sidt sidplayer_pr::play (void *buffer, udword_sidt length)
         clock++;
 
         // Check to see if we need a new sample from reSID
-        samplingCount++;
-        if (samplingCount > samplingPeriod)
-        {   // Rev 2.0.3 Changed - Using new mixer routines
-            (this->*output) (clock, buffer, count);
-            // Check to see if the buffer is full and if so return
-            // so the samples can be played
-            if (count >= length)
-                return length;
-            samplingCount -= samplingPeriod;
-            clock = 0;
+        _currentPeriod++;
+        if (_currentPeriod < _samplingPeriod)
+            continue;
+
+        // Rev 2.0.3 Changed - Using new mixer routines
+        (this->*output) (clock, buffer, count);
+
+        // Check to see if the buffer is full and if so return
+        // so the samples can be played
+        if (count >= length)
+        {
+            count = length;
+            goto sidplayer_pr_play_updateTimer;
         }
+
+        _currentPeriod -= _samplingPeriod;
+        clock = 0;
     }
 
-    return count;
+    if (playerState == _stopped)
+    {
+        initialise ();
+        return 0;
+    }
+
+sidplayer_pr_play_updateTimer:
+    // Calculate the current air time
+    playerState   = _paused;
+    _sampleCount += (count / _channels);
+
+    while (_sampleCount >= _samplingFreq)
+    {   // Calculate play time
+        _updateClock  = true;
+		_sampleCount -= _samplingFreq;
+        if (_playLength)
+        {   // If seconds is zero we have ended, so reset
+            if (!_seconds)
+			{
+                initialise ();
+				break;
+			}
+            _seconds--;
+        }
+        else
+            _seconds++;
+    }
+    // Change size from native units to generic units
+    return count * _scaleBuffer;
 }
 
 int sidplayer_pr::loadSong (const char * const title, const uword_sidt songNumber)
@@ -205,40 +287,6 @@ int sidplayer_pr::loadSong (SidTune *requiredTune)
     tune   = requiredTune;
     tune->getInfo(tuneInfo);
 
-    // Setup the audio side, depending on the audio hardware
-    // and the information returned by sidtune
-    switch (_playback)
-    {
-    case stereo:
-        if (tuneInfo.sidChipBase2 || _forceDualSids)
-            output = &sidplayer_pr::stereoOut8StereoIn;
-        else
-            output = &sidplayer_pr::stereoOut8MonoIn;
-    break;
-
-    case right:
-        if (tuneInfo.sidChipBase2 || _forceDualSids)
-            output = &sidplayer_pr::rightOut8StereoIn;
-        else
-            output = &sidplayer_pr::monoOut8MonoIn;
-    break;
-
-    case left:
-        if (tuneInfo.sidChipBase2 || _forceDualSids)
-            output = &sidplayer_pr::leftOut8StereoIn;
-        else
-            output = &sidplayer_pr::monoOut8MonoIn;
-    break;
-
-    case mono:
-    default:
-        if (tuneInfo.sidChipBase2 || _forceDualSids)
-            output = &sidplayer_pr::monoOut8StereoIn;
-        else
-            output = &sidplayer_pr::monoOut8MonoIn;
-    break;
-    }
-
     // Disable second sid from read/writes in memory
     // accesses.  The help preventing breaking of songs
     // which deliberately use SID mirroring.
@@ -246,6 +294,72 @@ int sidplayer_pr::loadSong (SidTune *requiredTune)
         _sid2Enabled = true;
     else
         _sid2Enabled = false;
+
+    // Setup the audio side, depending on the audio hardware
+    // and the information returned by sidtune
+    switch (_precision)
+    {
+    case 8:
+        if (!_sid2Enabled)
+        {
+            if (_playback == sid_stereo)
+                output = &sidplayer_pr::stereoOut8MonoIn;
+            else
+                output = &sidplayer_pr::monoOut8MonoIn;
+        }
+        else
+        {
+            switch (_playback)
+            {
+            case sid_stereo: // Stereo Hardware
+                output = &sidplayer_pr::stereoOut8StereoIn;
+            break;
+
+            case sid_right: // Mono Hardware,
+                output = &sidplayer_pr::monoOut8StereoRIn;
+            break;
+
+            case sid_left:
+                output = &sidplayer_pr::monoOut8MonoIn;
+            break;
+
+            case sid_mono:
+                output = &sidplayer_pr::monoOut8StereoIn;
+            break;
+            }
+        }
+    break;
+            
+    case 16:
+        if (!_sid2Enabled)
+        {
+            if (_playback == sid_stereo)
+                output = &sidplayer_pr::stereoOut16MonoIn;
+            else
+                output = &sidplayer_pr::monoOut16MonoIn;
+        }
+        else
+        {
+            switch (_playback)
+            {
+            case sid_stereo: // Stereo Hardware
+                output = &sidplayer_pr::stereoOut16StereoIn;
+            break;
+
+            case sid_right: // Mono Hardware,
+                output = &sidplayer_pr::monoOut16StereoRIn;
+            break;
+
+            case sid_left:
+                output = &sidplayer_pr::monoOut16MonoIn;
+            break;
+
+            case sid_mono:
+                output = &sidplayer_pr::monoOut16StereoIn;
+            break;
+            }
+        }
+    }
 
     // Check if environment has not initialised or
     // the user has asked to a different one.
@@ -272,6 +386,13 @@ int sidplayer_pr::initialise ()
     envReset ();
     if (!tune->placeSidTuneInC64mem (ram))
         return -1;
+
+    // Rev 2.0.4 (saw) - Added for new time ounter
+    _currentPeriod  = 0;
+    _sampleCount    = 0;
+    // Clock speed changing due to loading a new song
+    _samplingPeriod = _cpuFreq / (double) _samplingFreq;
+    playLength (_playLength);
 
     // Setup the Initial entry point
     uword_sidt initAddr = tuneInfo.initAddr;
@@ -811,14 +932,14 @@ sidplayer::sidplayer ()
 sidplayer::~sidplayer ()
 {   if (player) delete player; }
 
-void sidplayer::configure (playback_sidt mode, udword_sidt samplingFreq, bool forceDualSid)
-{   player->configure (mode, samplingFreq, forceDualSid); }
+void sidplayer::configure (playback_sidt mode, udword_sidt samplingFreq, ubyte_sidt precision, bool forceDualSid)
+{   player->configure (mode, samplingFreq, precision, forceDualSid); }
 
 void sidplayer::stop (void)
 {   player->stop (); }
 
-void sidplayer::paused (void)
-{   player->stop (); }
+void sidplayer::pause (void)
+{   player->pause (); }
 
 udword_sidt sidplayer::play (void *buffer, udword_sidt length)
 {   return player->play (buffer, length); }
@@ -837,3 +958,13 @@ void sidplayer::getInfo (playerInfo_sidt *info)
 
 void sidplayer::optimisation (ubyte_sidt level)
 {   player->optimisation (level); }
+
+udword_sidt sidplayer::time (void)
+{   return player->time (); }
+
+bool sidplayer::updateClock (void)
+{   return player->updateClock (); }
+
+void sidplayer::playLength (udword_sidt seconds)
+{   player->playLength (seconds); }
+
