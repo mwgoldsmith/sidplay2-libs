@@ -18,6 +18,7 @@
 #include <iostream.h>
 #include <iomanip.h>
 
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,6 +62,7 @@ static void displayError  (char* arg0, int num);
 static void displaySyntax (char* arg0);
 // Rev 2.0.4 (saw) - Added for better MAC support
 static inline bool generateMusic (AudioConfig &cfg, void *buffer);
+static void sighandler    (int signum);
 static void cleanup (void);
 
 int main(int argc, char *argv[])
@@ -86,6 +88,15 @@ int main(int argc, char *argv[])
 	// (ms) Incomplete...
     // Fastforward/Rewind Patch
     udword_sidt      starttime     = 0;
+
+    // Install signal error handlers
+    if ((signal (SIGINT,  &sighandler) == SIG_ERR)
+     || (signal (SIGABRT, &sighandler) == SIG_ERR)
+     || (signal (SIGTERM, &sighandler) == SIG_ERR))
+    {
+		displayError(argv[0], ERR_SIGHANDLER);
+        goto main_error;
+    }
 
     // New...
     AudioConfig   audioCfg;
@@ -602,6 +613,23 @@ bool generateMusic (AudioConfig &cfg, void *buffer)
 
     return true;
 }
+
+
+void sighandler (int signum)
+{
+    switch (signum)
+    {
+    case SIGINT:
+    case SIGABRT:
+    case SIGTERM:
+        cleanup ();
+    exit (EXIT_ERROR_STATUS);
+
+    default:
+        break;
+    }
+}
+
 
 void displayError (char* arg0, int num)
 {
