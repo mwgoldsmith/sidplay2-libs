@@ -42,7 +42,7 @@ dist=true
 install=false
 type=HEADER
 [src/audio/directx/Makefile.am]
-files=src/audio/directx/audiodrv.cpp,src/audio/directx/audiodrv.h,
+files=src/audio/directx/directx.cpp,src/audio/directx/directx.h,
 sub_dirs=
 type=static_library
 [src/mos6510/cycle_based/Makefile.am]
@@ -231,7 +231,7 @@ install_location=
 dist=true
 install=false
 type=SOURCE
-[src/audio/directx/audiodrv.cpp]
+[src/audio/directx/directx.cpp]
 install_location=
 dist=true
 install=false
@@ -406,7 +406,7 @@ install_location=
 dist=true
 install=false
 type=HEADER
-[src/audio/directx/audiodrv.h]
+[src/audio/directx/directx.h]
 install_location=
 dist=true
 install=false
