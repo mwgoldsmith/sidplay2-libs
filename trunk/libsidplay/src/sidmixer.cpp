@@ -27,7 +27,7 @@ sdword_sidt sidplayer_pr::monoOutGenericMonoIn (uword_sidt clock, udword_sidt &c
     sdword_sidt sample;
     count++;
 
-    if (_optimiseLevel > 1)
+    if (_optimiseLevel)
     {
         sid.clock  (clock);
         xsid.clock (clock);
@@ -52,7 +52,7 @@ sdword_sidt sidplayer_pr::monoOutGenericStereoIn (uword_sidt clock, udword_sidt 
     sdword_sidt sampleL, sampleR;
     count++;
 
-    if (_optimiseLevel > 1)
+    if (_optimiseLevel)
     {
         sid.clock  (clock);
         sid2.clock (clock);
@@ -85,7 +85,7 @@ sdword_sidt sidplayer_pr::monoOutGenericStereoRIn (uword_sidt clock, udword_sidt
     sdword_sidt sample;
     count++;
 	
-    if (_optimiseLevel > 1)
+    if (_optimiseLevel)
     {
         sid2.clock (clock);
         xsid.clock (clock);
@@ -110,7 +110,7 @@ sdword_sidt sidplayer_pr::stereoOutGenericMonoIn (uword_sidt clock, udword_sidt 
     sdword_sidt sample;
 	count += 2;
 
-    if (_optimiseLevel > 1)
+    if (_optimiseLevel)
     {
         sid.clock  (clock);
         xsid.clock (clock);
@@ -135,7 +135,7 @@ sdword_sidt sidplayer_pr::stereoOutGenericStereoIn (uword_sidt clock, udword_sid
     sdword_sidt sampleL;
     count += 2;
 
-    if (_optimiseLevel > 1)
+    if (_optimiseLevel)
     {
         sid.clock  (clock);
         sid2.clock (clock);
