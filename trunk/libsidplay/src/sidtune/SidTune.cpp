@@ -30,19 +30,18 @@
 #include <string.h>
 #include <limits.h>
 
-const char _sidtune_txt_songNumberExceed[] = "WARNING: Selected song number was too high";
-const char _sidtune_txt_wrappedSid[] = "WARNING: End of data wrapped to beginning of memory";
-const char _sidtune_txt_empty[] = "ERROR: No data to load";
-const char _sidtune_txt_unrecognizedFormat[] = "ERROR: Could not determine file format";
-const char _sidtune_txt_noDataFile[] = "ERROR: Did not find the corresponding data file";
-const char _sidtune_txt_notEnoughMemory[] = "ERROR: Not enough free memory";
-const char _sidtune_txt_cantLoadFile[] = "ERROR: Could not load input file";
-const char _sidtune_txt_cantOpenFile[] = "ERROR: Could not open file for binary input";
-const char _sidtune_txt_fileTooLong[] = "ERROR: Input data too long";
-const char _sidtune_txt_dataTooLong[] = "ERROR: Music data size exceeds C64 memory";
-const char _sidtune_txt_cantCreateFile[] = "ERROR: Could not create output file";
-const char _sidtune_txt_fileIoError[] = "ERROR: File I/O error";
-const char _sidtune_txt_fatalInternal[] = "FATAL: Internal error - contact the developers";
+const char _sidtune_txt_songNumberExceed[] = "SIDTUNE WARNING: Selected song number was too high";
+const char _sidtune_txt_wrappedSid[] = "SIDTUNE WARNING: End of data wrapped to beginning of memory";
+const char _sidtune_txt_empty[] = "SIDTUNE ERROR: No data to load";
+const char _sidtune_txt_unrecognizedFormat[] = "SIDTUNE ERROR: Could not determine file format";
+const char _sidtune_txt_noDataFile[] = "SIDTUNE ERROR: Did not find the corresponding data file";
+const char _sidtune_txt_notEnoughMemory[] = "SIDTUNE ERROR: Not enough free memory";
+const char _sidtune_txt_cantLoadFile[] = "SIDTUNE ERROR: Could not load input file";
+const char _sidtune_txt_cantOpenFile[] = "SIDTUNE ERROR: Could not open file for binary input";
+const char _sidtune_txt_fileTooLong[] = "SIDTUNE ERROR: Input data too long";
+const char _sidtune_txt_dataTooLong[] = "SIDTUNE ERROR: Music data size exceeds C64 memory";
+const char _sidtune_txt_cantCreateFile[] = "SIDTUNE ERROR: Could not create output file";
+const char _sidtune_txt_fileIoError[] = "SIDTUNE ERROR: File I/O error";
 const char _sidtune_txt_PAL_VBI[] = "50 Hz VBI (PAL)";
 const char _sidtune_txt_PAL_CIA[] = "CIA 1 Timer A (PAL)";
 const char _sidtune_txt_NTSC_VBI[] = "60 Hz VBI (NTSC)";
