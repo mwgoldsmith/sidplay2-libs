@@ -65,7 +65,7 @@ void fake6526::write (ubyte_sidt addr, ubyte_sidt data)
        setCount = latch;
    break;
    case 0x0e:
-       cra = data;
+       cra = data & 0xef;  // (ms) mask strobe flag
        if (cra & 0x01)
            count = setCount;
    break;

@@ -558,16 +558,10 @@ ubyte_sidt sidplayer_pr::readMemByte_playsid (uword_sidt addr, bool useCache)
     // Not SID ?
     if (( tempAddr & 0xff00 ) != 0xd400 )
     {
-        switch (addr)
-        {
-        case 0xdc04:
-        case 0xdc05:
-            return cia.read ((ubyte_sidt) addr);
-        break;
-
-        default:
+        if ( (addr&0xfff0) == 0xdc00 )   // (ms) CIA 1
+            return cia.read(addr&0x0f);
+        else
             return rom[addr];
-        }
     }
     else
     {   // $D41D/1E/1F, $D43D/, ... SID not mirrored
