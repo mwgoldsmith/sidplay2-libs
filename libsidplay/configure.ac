@@ -1,6 +1,6 @@
 dnl Setup library CURRENT, REVISION and AGE
 m4_define([LIBCUR],1)
-m4_define([LIBREV],1)
+m4_define([LIBREV],0)
 m4_define([LIBAGE],0)
 
 dnl Process this file with autoconf to produce a configure script.
@@ -91,11 +91,6 @@ AC_ARG_WITH(sidbuilders,
 )
 AC_SUBST(builders)
 
-dnl Email addresses
-AH_BOTTOM([/* Email addresses */
-#define S_A_WHITE_EMAIL "sidplay2@yahoo.com"
-])
-
 dnl Add absolute directory for header files
 CXXFLAGS="$CXXFLAGS -DHAVE_UNIX -I\$(top_srcdir)/include \
 -I\$(top_srcdir)/include/sidplay"
@@ -118,7 +113,6 @@ src/sidtune/Makefile \
 src/xsid/Makefile \
 unix/Makefile \
 unix/libsidplay2.spec \
-unix/libsidplay2.qpg \
 unix/libsidplay2.pc \
 unix/sidconfig.h \
 )
