@@ -23,11 +23,11 @@
 
 // Default settings
 const udword_sidt SIDPLAYER_DEFAULT_SAMPLING_FREQ = 44100;
-const ubyte_sidt SIDPLAYER_DEFAULT_PRECISION = 16;
+const int SIDPLAYER_DEFAULT_PRECISION = 16;
 
 // Maximum values
-const ubyte_sidt SIDPLAYER_MAX_PRECISION = 16;
-const int SIDPLAYER_MAX_OPTIMISATION = 3;
+const int SIDPLAYER_MAX_PRECISION = 16;
+const int SIDPLAYER_MAX_OPTIMISATION = 2;
 
 typedef enum {sid_left  = 0, sid_mono,  sid_stereo, sid_right} playback_sidt;
 typedef enum {sid_envPS = 0, sid_envTP, sid_envBS,  sid_envR } env_sidt;
@@ -63,7 +63,7 @@ public:
     sidplayer ();
     virtual ~sidplayer ();
 
-    void        configure    (playback_sidt mode, udword_sidt samplingFreq, ubyte_sidt precision, bool forceDualSid);
+    void        configure    (playback_sidt mode, udword_sidt samplingFreq, int precision, bool forceDualSid);
     void        stop         (void);
     void        pause        (void);
     udword_sidt play         (void *buffer, udword_sidt length);
@@ -71,7 +71,7 @@ public:
     int         loadSong     (SidTune *requiredTune);
     void        environment  (env_sidt env);
     void        getInfo      (playerInfo_sidt *info);
-    void        optimisation (ubyte_sidt level);
+    void        optimisation (int level);
 
     // Rev 2.0.4 (saw) - Added new timer functions
     udword_sidt time         (void);

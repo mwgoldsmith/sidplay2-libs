@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     bool          verboseOutput = false;
     bool          force2SID     = false;
     int           i             = 1;
-    ubyte_sidt    optimiseLevel = 0;
+    int           optimiseLevel = 0;
     clock_sidt    clockSpeed    = SID_TUNE_CLOCK;
 
     // (ms) Opposite of verbose output.
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
                     break;
                 }
 
-                optimiseLevel = (ubyte_sidt) atoi(argv[i] + x);
+                optimiseLevel = atoi(argv[i] + x);
                 // Show that all string was processed
                 while (argv[i][x] != '\0')
                     x++;
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
                 }
 
                 {
-                    ubyte_sidt precision = atoi(argv[i] + x);
+                    int precision = atoi(argv[i] + x);
                     if (precision <= 8)
                         precision = 8;
                     else if (precision <= 16)
@@ -565,7 +565,11 @@ int main(int argc, char *argv[])
     // Get all the text to the screen so music playback
     // is not disturbed.
     player.playLength (runtime);
-    if ( !quietLevel )
+    if ( quietLevel == 1 )
+    {
+        cout << endl;
+    }
+    else
     {
         cout << setw(2) << setfill('0') << ((runtime / 60) % 100)
              << ':' << setw(2) << setfill('0') << (runtime % 60) << flush;
@@ -602,12 +606,16 @@ bool generateMusic (AudioConfig &cfg, void *buffer)
         return false;
 
     // Check to see if the clock requires updating
-    if ( !quietLevel && player.updateClock ())
+    if ( player.updateClock ())
     {
         udword_sidt seconds = player.time();
-        cout << "\b\b\b\b\b" << setw(2) << setfill('0') << ((seconds / 60) % 100)
-		     << ':' << setw(2) << setfill('0') << (seconds % 60) << flush;
-//        if (!seconds)
+        if ( !quietLevel )
+        {
+            cout << "\b\b\b\b\b" << setw(2) << setfill('0') << ((seconds / 60) % 100)
+            << ':' << setw(2) << setfill('0') << (seconds % 60) << flush;
+		}
+        // Commented out temporarily for fastforward/rewind support.
+        //if (!seconds)
             return false;
     }
 
@@ -685,11 +693,11 @@ void displaySyntax (char* arg0)
         << " -ns          MOS 8580 waveforms (default: MOS 6581)" << endl
 
         << " -o<num>      select track number (default: preset)" << endl
-        << " -O<num>      optimisation level, max is " << (SIDPLAYER_MAX_OPTIMISATION - 1)
-        << " (default: 1)" << endl
+        << " -O<num>      optimisation level, max is " << SIDPLAYER_MAX_OPTIMISATION
+        << " (default: 0)" << endl
 
-        << " -p<num>      set bit precision for samples. " << "(default: "
-        << SIDPLAYER_DEFAULT_PRECISION << ")" << endl
+        << " -p<num>      set bit precision for samples. "
+		<< "(default: " << SIDPLAYER_DEFAULT_PRECISION << ")" << endl
 
         << " -q           quiet (= no time display) (EXPERIMENTAL)" << endl
         << " -t<num>      set play length in [m:]s format (0 is endless)" << endl

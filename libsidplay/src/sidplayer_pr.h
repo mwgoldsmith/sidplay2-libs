@@ -46,7 +46,7 @@ private:
     env_sidt      _environment;
     playback_sidt _playback;
     udword_sidt   _samplingFreq;
-    ubyte_sidt    _precision;
+    int           _precision;
 
     // C64 environment settings
     double        _cpuFreq;
@@ -60,7 +60,7 @@ private:
     udword_sidt   _rightVolume;
     bool          _sid2Enabled;
     bool          _forceDualSids;
-    ubyte_sidt    _optimiseLevel;
+    int           _optimiseLevel;
 
     // Rev 2.0.4 (saw) - Added for new timer support
     udword_sidt   _scaleBuffer;
@@ -144,7 +144,7 @@ private:
     sidplayer_pr ();
     virtual ~sidplayer_pr ();
 
-    int         configure    (playback_sidt mode, udword_sidt samplingFreq, ubyte_sidt precision, bool forceDualSid);
+    int         configure    (playback_sidt mode, udword_sidt samplingFreq, int precision, bool forceDualSid);
     void        stop         (void);
     void        pause        (void);
     udword_sidt play         (void *buffer, udword_sidt length);
@@ -152,7 +152,7 @@ private:
     int         loadSong     (SidTune *requiredTune);
     int         environment  (env_sidt env);
     void        getInfo      (playerInfo_sidt *info);
-    void        optimisation (ubyte_sidt level)
+    void        optimisation (int level)
     {
         if (level > SIDPLAYER_MAX_OPTIMISATION)
             level = SIDPLAYER_MAX_OPTIMISATION;
