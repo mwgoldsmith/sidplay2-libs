@@ -83,7 +83,7 @@ sidplayer_pr::~sidplayer_pr ()
         delete myTune;
 }
 
-int sidplayer_pr::configure (playback_sidt playback, udword_sidt samplingFreq, ubyte_sidt precision, bool forceDualSids)
+int sidplayer_pr::configure (playback_sidt playback, udword_sidt samplingFreq, int precision, bool forceDualSids)
 {
     if (playerState != _stopped)
         return -1;
@@ -944,7 +944,7 @@ sidplayer::sidplayer ()
 sidplayer::~sidplayer ()
 {   if (player) delete player; }
 
-void sidplayer::configure (playback_sidt mode, udword_sidt samplingFreq, ubyte_sidt precision, bool forceDualSid)
+void sidplayer::configure (playback_sidt mode, udword_sidt samplingFreq, int precision, bool forceDualSid)
 {   player->configure (mode, samplingFreq, precision, forceDualSid); }
 
 void sidplayer::stop (void)
@@ -968,7 +968,7 @@ void sidplayer::environment (env_sidt env)
 void sidplayer::getInfo (playerInfo_sidt *info)
 {   player->getInfo (info); }
 
-void sidplayer::optimisation (ubyte_sidt level)
+void sidplayer::optimisation (int level)
 {   player->optimisation (level); }
 
 udword_sidt sidplayer::time (void)
