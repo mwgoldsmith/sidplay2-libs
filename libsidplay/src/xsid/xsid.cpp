@@ -39,6 +39,7 @@ channel::channel ()
 void channel::reset ()
 {
     galVolume = 0; // This is left to free run until reset
+    mode      = FM_NONE;
     // Set XSID to stopped state
     reg[convertAddr (0x1d)] = 0;
     free ();
@@ -47,7 +48,6 @@ void channel::reset ()
 inline void channel::clock (udword_sidt delta_t)
 {
     if (!cycleCount) return;
-
     if (delta_t == 1)
     {
         (this->*_clock) ();
@@ -89,7 +89,7 @@ inline ubyte_sidt channel::output ()
 
 void channel::free ()
 {
-    mode       = FM_NONE;
+    active     = false;
     cycleCount = 0;
     _clock     = &channel::silence;
     silence ();
@@ -117,23 +117,14 @@ void channel::checkForInit ()
 
 void channel::sampleInit ()
 {
-    if (mode == FM_GALWAY)
+    if (active && (mode == FM_GALWAY))
         return;
 
 #ifdef XSID_DEBUG
     printf ("XSID [%lu]: Sample Init\n", (unsigned long) this);
 
-    switch (mode)
-    {
-    case FM_HUELS:
+    if (active && (mode == FM_HEULS))
         printf ("XSID [%lu]: Stopping Playing Sample\n", (unsigned long) this);
-    break;
-    case FM_GALWAY:
-        printf ("XSID [%lu]: Stopping Playing Galway\n", (unsigned long) this);
-    break;
-    default:
-    break;
-    }
 #endif
 
     // Check all important parameters are legal
@@ -154,7 +145,12 @@ void channel::sampleInit ()
     samRepeatAddr = ((uword_sidt) reg[convertAddr (0x7f)] << 8) | reg[convertAddr (0x7e)];
     cycleCount    = samPeriod;
 
-    mode    = FM_HUELS;
+    // Support Galway Samples, but that
+    // mode it setup only when as Galway
+    // Noise sequence begins
+    if (mode == FM_NONE)
+        mode  = FM_HUELS;
+    active  = true;
     _clock  = &channel::sampleClock;
     sample  = sampleCalculate ();
 #ifdef XSID_USE_SID_VOLUME
@@ -253,23 +249,15 @@ sbyte_sidt channel::sampleCalculate ()
 
 void channel::galwayInit()
 {
-    if (mode != FM_NONE)
+    // If mode was HEULS, then it's
+    // gonna become GALWAY and we should
+    // not interrupt current sample
+    mode = FM_GALWAY;
+    if (active)
         return;
 
 #ifdef XSID_DEBUG
     printf ("XSID [%lu]: Galway Init\n", (unsigned long) this);
-
-    switch (mode)
-    {
-    case FM_HUELS:
-        printf ("XSID [%lu]: Stopping Playing Sample\n", (unsigned long) this);
-    break;
-    case FM_GALWAY:
-        printf ("XSID [%lu]: Stopping Playing Galway\n", (unsigned long) this);
-    break;
-    default:
-    break;
-    }
 #endif
 
     // Check all important parameters are legal
@@ -287,6 +275,7 @@ void channel::galwayInit()
     address  = ((uword_sidt) reg[convertAddr (0x1f)] << 8) | reg[convertAddr(0x1e)];
     volShift = reg[convertAddr (0x3e)] & 0x0f;
     mode     = FM_GALWAY;
+    active   = true;
 
 #ifndef XSID_USE_SID_VOLUME
     sample  = sampleConvertTable[galVolume];

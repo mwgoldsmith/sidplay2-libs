@@ -73,7 +73,8 @@ class channel: public C64Environment
 private:
     // General
     ubyte_sidt  reg[0x10];
-    enum  {FM_NONE = 0, FM_GALWAY, FM_HUELS} mode;
+    enum  {FM_NONE = 0, FM_HUELS, FM_GALWAY} mode;
+    bool        active;
     uword_sidt  address;
     uword_sidt  cycleCount; // Counts to zero and triggers!
     ubyte_sidt  volShift;
@@ -123,8 +124,8 @@ public:
     inline void       galwayTonePeriod (void);
 
     // Used to indocate if channel is running
-    operator bool()  const { return (mode != FM_NONE); }
-    bool operator!() const { return (mode == FM_NONE); }
+    operator bool()  const { return (active);  }
+    bool operator!() const { return (!active); }
 
 #ifdef XSID_DEBUG
 private:
@@ -177,7 +178,7 @@ public:
         sidVolAddr = addr + 0x18;
     }
 
-    XSID::XSID ()
+    XSID ()
     {
         setSIDAddress (0xd400);
     }
