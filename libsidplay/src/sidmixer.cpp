@@ -225,7 +225,9 @@ void sidplayer_pr::monoOut16StereoRIn (uword_sidt clock, void *buffer, udword_si
 void sidplayer_pr::stereoOut16MonoIn (uword_sidt clock, void *buffer, udword_sidt &count)
 {   // Get sample(s)
     sword_sidt *buf = (sword_sidt *) buffer + count;
-    *buf = (sword_sidt) stereoOutGenericMonoIn (clock, count, 16);
+	sword_sidt sample = (sword_sidt) stereoOutGenericMonoIn (clock, count, 16);
+	*buf++ = sample;
+    *buf   = sample;
 }
 
 void sidplayer_pr::stereoOut16StereoIn (uword_sidt clock, void *buffer, udword_sidt &count)
