@@ -16,17 +16,18 @@ AC_PROG_CXX
 AC_PROG_RANLIB
 dnl Checks for libraries.
 
+SID_PATH_LIBRESID
+
 dnl Checks for header files.
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_BIGENDIAN
 if test $ac_cv_c_bigendian = yes; then
-    SID_WORDS_ENDIANESS="#define SID_WORDS_BIGENDIAN"
+    SID_SUBST(SID_WORDS_ENDIANESS,SID_WORDS_BIGENDIAN)
 else
-    SID_WORDS_ENDIANESS="#define SID_WORDS_LITTLEENDIAN"
-fi  
-AC_SUBST(SID_WORDS_ENDIANESS)
-  
+    SID_SUBST(SID_WORDS_ENDIANESS,SID_WORDS_LITTLEENDIAN)
+fi
+
 AC_CHECK_SIZEOF(char, 1)
 AC_CHECK_SIZEOF(short int, 2)
 AC_CHECK_SIZEOF(int, 4)

@@ -10,12 +10,12 @@ dist=true
 install=false
 type=DATA
 [Workspace_1]
-openfiles=Untitled.h,Untitled.cpp,/home/white_s_a/libsidplay/src/main.cpp,/home/white_s_a/libsidplay/src/sidplayer.cpp,/home/white_s_a/libsidplay/src/mos6510/conf6510.h,/home/white_s_a/libsidplay/ChangeLog,/home/white_s_a/libsidplay/src/audio/oss/audiodrv.cpp,/home/white_s_a/libsidplay/src/sidtune/SidTuneTools.cpp,/home/white_s_a/libsidplay/src/sidtune/SidTune.cpp,/home/white_s_a/libsidplay/src/mos6510/mos6510.cpp,/home/white_s_a/libsidplay/src/fake6526.cpp,/home/white_s_a/libsidplay/src/sidplayer_pr.h,/home/white_s_a/libsidplay/src/mos6510/cycle_based/mos6510c.h,/home/white_s_a/libsidplay/src/mos6510/cycle_based/mos6510c.i,/home/white_s_a/libsidplay/src/mos6510/cycle_based/sid6510c.i,/home/white_s_a/libsidplay/win/config.h,/home/white_s_a/libsidplay/src/xsid/xsid.cpp,/home/white_s_a/libsidplay/src/mos6510/mos6510.h,/home/white_s_a/libsidplay/src/mos6510/opcodes.h,/home/white_s_a/libsidplay/src/mos6510/cycle_based/sid6510c.h,
+openfiles=Untitled.h,Untitled.cpp,/home/ms/files/source/sidplay2/libsidplay/src/main.cpp,
 show_outputview=true
 show_treeview=true
-header_file=/home/white_s_a/libsidplay/src/mos6510/conf6510.h
-cpp_file=/home/white_s_a/libsidplay/src/mos6510/mos6510.cpp
-browser_file=file:/usr/doc/kde/HTML/default/kdevelop/addendum/index.html
+header_file=Untitled.h
+cpp_file=/home/ms/files/source/sidplay2/libsidplay/src/main.cpp
+browser_file=file:/usr/doc/kde/HTML/default/kdevelop/reference/C/compiler.html
 [src/sidtune/IconInfo.cpp]
 install_location=
 dist=true
@@ -66,7 +66,7 @@ type=HEADER
 [Config for BinMakefileAm]
 ldflags=
 addcxxflags=
-ldadd=-lresid
+ldadd=$(RESID_LDADD) -lresid
 cxxflags= -O2 -g3 -Wall
 bin_program=libsidplay
 [src/audio/oss/audiodrv.cpp]
@@ -331,7 +331,7 @@ lfv_open_groups=Headers,Sources,GNU,Others,
 workspace=1
 version=2.0.3
 project_name=Libsidplay
-AMChanged=false
+AMChanged=true
 short_info=,
 email=s_a_white@email.com
 kdevprj_version=1.0beta2
