@@ -212,7 +212,6 @@ const udword_ppt PP20::decompress(const void* source,
 								  udword_ppt size,
 								  ubyte_ppt** destRef)
 {
-	udword_ppt outputLen = 0;
 	globalError = false;  // assume no error
 	
 	sourceBeg = (const ubyte_ppt*)source;
@@ -229,7 +228,7 @@ const udword_ppt PP20::decompress(const void* source,
 
 	udword_ppt lastDword = readBEdword(readPtr);
 	// Uncompressed length in bits 31-8 of last dword.
-	outputLen = lastDword>>8;
+	udword_ppt outputLen = lastDword>>8;
 	
 	// Allocate memory for output data.
 	ubyte_ppt* dest;

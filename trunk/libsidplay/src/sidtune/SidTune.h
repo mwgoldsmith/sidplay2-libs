@@ -21,9 +21,24 @@
 #ifndef SIDTUNE_H
 #define SIDTUNE_H
 
+#include <fstream.h>
+
 #include "SidTuneTypes.h"
+#include "SidTuneEndian.h"
+#include "Buffer.h"
+#include "SmartPtr.h"
+
+const uword_sidt SIDTUNE_MAX_SONGS = 256;
+// Also PSID file format limit.
 
 const uword_sidt SIDTUNE_MAX_CREDIT_STRINGS = 10;
+const uword_sidt SIDTUNE_MAX_CREDIT_STRLEN = 80+1;
+// 80 characters plus terminating zero.
+
+const udword_sidt SIDTUNE_MAX_MEMORY = 65536;
+const udword_sidt SIDTUNE_MAX_FILELEN = 65536+2+0x7C;
+// C64KB+LOAD+PSID
+
 const int SIDTUNE_SPEED_VBI = 0;		// Vertical-Blanking-Interrupt
 const int SIDTUNE_SPEED_CIA_1A = 60;	// CIA 1 Timer A
 
@@ -90,26 +105,6 @@ struct SidTuneInfo
 	char* infoFileName;			// a second file: e.g. ``*.sid''
 	//
 };
-
-
-// This can only be used for the C++ interface
-#ifdef __cplusplus
-
-#include <fstream.h>
-#include "SidTuneEndian.h"
-#include "Buffer.h"
-#include "SmartPtr.h"
-
-const uword_sidt SIDTUNE_MAX_SONGS = 256;
-// Also PSID file format limit.
-
-const uword_sidt SIDTUNE_MAX_CREDIT_STRLEN = 80+1;
-// 80 characters plus terminating zero.
-
-const udword_sidt SIDTUNE_MAX_MEMORY = 65536;
-const udword_sidt SIDTUNE_MAX_FILELEN = 65536+2+0x7C;
-// C64KB+LOAD+PSID
-
 
 
 class SidTune
@@ -304,5 +299,4 @@ class SidTune
 
 };
 	
-#endif /* __cplusplus */
-#endif /* SIDTUNE_H */
+#endif  /* SIDTUNE_H */

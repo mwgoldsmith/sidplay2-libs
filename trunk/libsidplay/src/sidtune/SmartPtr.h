@@ -39,7 +39,7 @@ class SmartPtrBase_sidtt
 #ifndef SID_HAVE_BAD_COMPILER
 			delete[] bufBegin;
 #else
-			delete[] (void *) bufBegin;
+			delete[] (void*)bufBegin;
 #endif
 		}
 	}
